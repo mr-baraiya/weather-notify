@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
   title: 'Weather Notify',
   description: 'Get weather alerts on WhatsApp',
+  icons: {
+    icon: '/weather-icon.webp',
+  },
 };
 
 export default function RootLayout({ children }) {

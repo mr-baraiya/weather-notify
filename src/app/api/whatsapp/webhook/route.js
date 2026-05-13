@@ -42,11 +42,37 @@ const helpMessage = [
   '5) UPDATE CITY <city> - update only your city',
 ].join('\n');
 
+const parseWebhookBody = async (request) => {
+  const contentType = request.headers.get('content-type') || '';
+
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    const raw = await request.text();
+    const params = new URLSearchParams(raw);
+    return {
+      from: params.get('From'),
+      body: params.get('Body'),
+    };
+  }
+
+  const form = await request.formData();
+  return {
+    from: form.get('From'),
+    body: form.get('Body'),
+  };
+};
+
+export async function GET() {
+  return new Response(buildTwiml(helpMessage), {
+    status: 200,
+    headers: { 'Content-Type': 'text/xml' },
+  });
+}
+
 export async function POST(request) {
   try {
-    const form = await request.formData();
-    const from = toE164(form.get('From'));
-    const body = (form.get('Body') || '').toString().trim();
+    const payload = await parseWebhookBody(request);
+    const from = toE164(payload.from);
+    const body = (payload.body || '').toString().trim();
 
     if (!from) {
       return new Response(buildTwiml('Missing sender number.'), {
@@ -66,7 +92,7 @@ export async function POST(request) {
 
     const subscriber = await Subscriber.findOne({ phone: from });
     if (!subscriber) {
-      return new Response(buildTwiml('Number not subscribed. Please subscribe first on the website.'), {
+      return new Response(buildTwiml('Number not subscribed. Please subscribe first on the website.\n\n' + helpMessage), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
