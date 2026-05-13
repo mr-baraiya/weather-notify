@@ -151,8 +151,8 @@ const SubscribeForm = () => {
   };
 
   return (
-    <div className="glass-card rounded-4xl p-8 w-full max-w-sm mx-auto">
-      <h3 className="text-2xl font-bold text-center mb-6">Subscribe for Alerts</h3>
+    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full max-w-sm mx-auto">
+      <h3 className="text-xl sm:text-2xl font-bold text-center mb-6">Subscribe for Alerts</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
           <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

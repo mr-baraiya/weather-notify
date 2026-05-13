@@ -2,6 +2,7 @@ import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { getWeather } from '@/lib/weather';
 import { sendWhatsAppMenu } from '@/lib/twilio';
+import { toTitleCase } from '@/lib/format';
 
 const toE164 = (value) => {
   if (!value) {
@@ -202,10 +203,10 @@ export async function POST(request) {
       }
 
       if (nextName) {
-        subscriber.name = nextName;
+        subscriber.name = toTitleCase(nextName);
       }
       if (nextCity) {
-        subscriber.city = nextCity;
+        subscriber.city = toTitleCase(nextCity);
       }
 
       await subscriber.save();

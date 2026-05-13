@@ -36,14 +36,14 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white px-6 py-16">
+    <div className="min-h-screen bg-gray-900 text-white px-4 py-12 sm:px-6 sm:py-16">
       <div className="container mx-auto max-w-3xl">
-        <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-        <p className="text-gray-300 text-lg mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">Contact Us</h1>
+        <p className="text-base sm:text-lg text-gray-300 mb-8 sm:mb-10">
           Have a question or feedback? Send us a message and we will get back to you.
         </p>
 
-        <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 sm:p-8 space-y-6">
           <div>
             <label className="block text-sm text-gray-300 mb-2" htmlFor="name">Name</label>
             <input
@@ -95,8 +95,8 @@ const ContactPage = () => {
 
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-gray-900 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center">
-            <h2 className="text-2xl font-semibold mb-3">Message sent</h2>
+          <div className="bg-gray-900 border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Message sent</h2>
             <p className="text-gray-300 mb-6">Thanks for reaching out. We will respond shortly.</p>
             <button
               onClick={() => setShowPopup(false)}

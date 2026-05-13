@@ -93,19 +93,19 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center text-white py-20">
+    <section className="relative min-h-screen flex items-center justify-center text-white py-16 sm:py-20">
       <div className="container mx-auto px-4 text-center">
-        <h1 className="text-5xl md:text-7xl font-bold mb-4">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4">
           Weather Notify
         </h1>
-        <p className="text-lg md:text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-10 sm:mb-12 max-w-2xl mx-auto">
           Get live weather updates and receive instant rain or heatwave alerts directly on your WhatsApp.
         </p>
         {locationStatus && (
           <p className="text-sm text-gray-400 mb-8">{locationStatus}</p>
         )}
 
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8">
           {loading ? (
             <div className="w-full lg:w-auto">
               <div className="glass-card rounded-4xl p-8 w-full max-w-sm mx-auto h-64 animate-pulse"></div>

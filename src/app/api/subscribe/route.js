@@ -1,5 +1,6 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
+import { toTitleCase } from '@/lib/format';
 
 export async function POST(request) {
   try {
@@ -14,7 +15,11 @@ export async function POST(request) {
       return new Response(JSON.stringify({ success: false, message: 'Phone number must be in E.164 format' }), { status: 400 });
     }
 
-    const newSubscriber = new Subscriber({ name, city, phone });
+    const newSubscriber = new Subscriber({
+      name: toTitleCase(name),
+      city: toTitleCase(city),
+      phone,
+    });
     await newSubscriber.save();
 
     return new Response(JSON.stringify({ success: true, data: newSubscriber }), { status: 201 });

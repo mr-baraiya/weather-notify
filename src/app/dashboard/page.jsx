@@ -68,65 +68,70 @@ const DashboardPage = () => {
     return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
   }
 
+  const cloudPercent = stats.weather?.clouds?.all;
+  const cloudLabel = typeof cloudPercent === 'number' ? `${cloudPercent}%` : 'N/A';
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-4xl font-bold mb-8">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="min-h-screen bg-gray-900 text-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-6 sm:mb-8">Dashboard</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Total Subscribers */}
-        <div className="bg-white/10 backdrop-blur-lg p-6 rounded-3xl">
+        <div className="bg-white/10 backdrop-blur-lg p-5 sm:p-6 rounded-3xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300">Total Subscribers</p>
-              <p className="text-3xl font-bold">{stats.subscribers}</p>
+              <p className="text-2xl sm:text-3xl font-bold">{stats.subscribers}</p>
             </div>
             <Users className="text-gray-400" size={32} />
           </div>
         </div>
 
         {/* Current Weather */}
-        <div className="bg-white/10 backdrop-blur-lg p-6 rounded-3xl">
+        <div className="bg-white/10 backdrop-blur-lg p-5 sm:p-6 rounded-3xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300">Weather in {cityLabel}</p>
-              <p className="text-3xl font-bold">{stats.weather ? `${Math.round(stats.weather.main.temp)}°C` : 'N/A'}</p>
+              <p className="text-2xl sm:text-3xl font-bold">{stats.weather ? `${Math.round(stats.weather.main.temp)}°C` : 'N/A'}</p>
             </div>
             {stats.weather?.weather[0].main === 'Rain' ? <Droplets className="text-blue-400" size={32} /> : <Thermometer className="text-red-400" size={32} />}
           </div>
         </div>
 
         {/* Active Alerts */}
-        <div className="bg-white/10 backdrop-blur-lg p-6 rounded-3xl">
+        <div className="bg-white/10 backdrop-blur-lg p-5 sm:p-6 rounded-3xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300">Active Alerts</p>
-              <p className="text-3xl font-bold">{stats.alerts}</p>
+              <p className="text-2xl sm:text-3xl font-bold">{stats.alerts}</p>
             </div>
             <Zap className="text-yellow-400" size={32} />
           </div>
         </div>
         
         {/* Placeholder */}
-        <div className="bg-white/10 backdrop-blur-lg p-6 rounded-3xl">
+        <div className="bg-white/10 backdrop-blur-lg p-5 sm:p-6 rounded-3xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300">Cloud Status</p>
-              <p className="text-3xl font-bold">{stats.weather ? `${stats.weather.clouds.all}%` : 'N/A'}</p>
+              <p className="text-2xl sm:text-3xl font-bold">{cloudLabel}</p>
             </div>
             <Cloud className="text-gray-400" size={32} />
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="mt-8 bg-white/10 backdrop-blur-lg p-6 rounded-3xl">
-        <h2 className="text-2xl font-bold mb-4">Recent Subscriptions</h2>
-        <ul>
-          {stats.recentSubscriptions.map((sub, index) => (
-            <li key={index} className="border-b border-gray-700 py-2 flex justify-between">
-              <span>{sub.name}</span>
-              <span className="text-gray-400">{sub.city}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-6 sm:mt-8 bg-white/10 backdrop-blur-lg p-5 sm:p-6 rounded-3xl">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">Recent Subscriptions</h2>
+          <ul>
+            {stats.recentSubscriptions.map((sub, index) => (
+              <li key={index} className="border-b border-gray-700 py-2 flex flex-col sm:flex-row sm:justify-between gap-1">
+                <span className="text-sm sm:text-base">{sub.name}</span>
+                <span className="text-gray-400 text-sm sm:text-base">{sub.city}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
