@@ -1,6 +1,7 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { getWeather } from '@/lib/weather';
+import { sendWhatsAppMenu } from '@/lib/twilio';
 
 const toE164 = (value) => {
   if (!value) {
@@ -33,6 +34,8 @@ const buildTwiml = (message) => {
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${safeMessage}</Message></Response>`;
 };
 
+const buildEmptyTwiml = () => '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
+
 const helpMessage = [
   'Menu:',
   '1) WEATHER - get weather for your saved city',
@@ -40,6 +43,7 @@ const helpMessage = [
   '3) UPDATE <name> | <city> - update name and city together',
   '4) UPDATE NAME <name> - update only your name',
   '5) UPDATE CITY <city> - update only your city',
+  '6) STOP - delete your subscription',
 ].join('\n');
 
 const parseWebhookBody = async (request) => {
@@ -82,10 +86,18 @@ export async function POST(request) {
     }
 
     if (!body) {
-      return new Response(buildTwiml(helpMessage), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      try {
+        await sendWhatsAppMenu(from);
+        return new Response(buildEmptyTwiml(), {
+          status: 200,
+          headers: { 'Content-Type': 'text/xml' },
+        });
+      } catch (error) {
+        return new Response(buildTwiml(helpMessage), {
+          status: 200,
+          headers: { 'Content-Type': 'text/xml' },
+        });
+      }
     }
 
     await connectToDatabase();
@@ -99,6 +111,35 @@ export async function POST(request) {
     }
 
     const upper = body.toUpperCase();
+    const normalized = body.replace(/\s+/g, ' ').trim().toUpperCase();
+
+    if (normalized === 'WEATHER CITY' || normalized === 'WEATHER <CITY>') {
+      return new Response(buildTwiml('Send: WEATHER <city>'), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    if (normalized === 'UPDATE NAME') {
+      return new Response(buildTwiml('Send: UPDATE NAME <name>'), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    if (normalized === 'UPDATE CITY') {
+      return new Response(buildTwiml('Send: UPDATE CITY <city>'), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    if (normalized === 'UPDATE NAME | CITY') {
+      return new Response(buildTwiml('Send: UPDATE <name> | <city>'), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
 
     if (upper === 'WEATHER' || upper.startsWith('WEATHER ')) {
       const city = body.replace(/^WEATHER\s*/i, '').trim();
@@ -115,6 +156,15 @@ export async function POST(request) {
       const message = buildWeatherMessage(targetCity, weatherData);
 
       return new Response(buildTwiml(message), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    if (upper === 'STOP') {
+      await Subscriber.deleteOne({ phone: from });
+
+      return new Response(buildTwiml('Your subscription has been deleted. If this was a mistake, please subscribe again on the website.'), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -163,10 +213,18 @@ export async function POST(request) {
       });
     }
 
-    return new Response(buildTwiml('Unknown command.\n' + helpMessage), {
-      status: 200,
-      headers: { 'Content-Type': 'text/xml' },
-    });
+    try {
+      await sendWhatsAppMenu(from);
+      return new Response(buildEmptyTwiml(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    } catch (error) {
+      return new Response(buildTwiml('Unknown command.\n' + helpMessage), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
   } catch (error) {
     console.error('Error in /api/whatsapp/webhook:', error);
     return new Response(buildTwiml('Server error. Please try again later.'), {
