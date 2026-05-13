@@ -37,13 +37,15 @@ const buildTwiml = (message) => {
 const buildEmptyTwiml = () => '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
 
 const helpMessage = [
-  'Menu:',
-  '1) WEATHER - get weather for your saved city',
-  '2) WEATHER <city> - get weather for a specific city',
-  '3) UPDATE <name> | <city> - update name and city together',
-  '4) UPDATE NAME <name> - update only your name',
-  '5) UPDATE CITY <city> - update only your city',
-  '6) STOP - delete your subscription',
+  'Get instant weather updates, rain alerts, and temperature information directly on WhatsApp.',
+  'Use the commands below exactly as shown to interact with the bot.',
+  '',
+  'WEATHER - weather for your saved city',
+  'WEATHER <city> - weather for a specific city',
+  'UPDATE <name> | <city> - update name and city together',
+  'UPDATE NAME <name> - update only your name',
+  'UPDATE CITY <city> - update only your city',
+  'STOP - delete your subscription',
 ].join('\n');
 
 const parseWebhookBody = async (request) => {
@@ -55,6 +57,9 @@ const parseWebhookBody = async (request) => {
     return {
       from: params.get('From'),
       body: params.get('Body'),
+      listId: params.get('ListId'),
+      listTitle: params.get('ListTitle'),
+      buttonPayload: params.get('ButtonPayload'),
     };
   }
 
@@ -62,6 +67,9 @@ const parseWebhookBody = async (request) => {
   return {
     from: form.get('From'),
     body: form.get('Body'),
+    listId: form.get('ListId'),
+    listTitle: form.get('ListTitle'),
+    buttonPayload: form.get('ButtonPayload'),
   };
 };
 
@@ -76,7 +84,8 @@ export async function POST(request) {
   try {
     const payload = await parseWebhookBody(request);
     const from = toE164(payload.from);
-    const body = (payload.body || '').toString().trim();
+    const listValue = payload.listId || payload.listTitle || payload.buttonPayload || '';
+    const body = (payload.body || listValue || '').toString().trim();
 
     if (!from) {
       return new Response(buildTwiml('Missing sender number.'), {
@@ -113,29 +122,29 @@ export async function POST(request) {
     const upper = body.toUpperCase();
     const normalized = body.replace(/\s+/g, ' ').trim().toUpperCase();
 
-    if (normalized === 'WEATHER CITY' || normalized === 'WEATHER <CITY>') {
-      return new Response(buildTwiml('Send: WEATHER <city>'), {
+    if (['WEATHER CITY', 'WEATHER <CITY>', 'WEATHER_CITY'].includes(normalized)) {
+      return new Response(buildTwiml('To get weather for another city, send:\nWEATHER <city>\nExample: WEATHER Rajkot'), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
     }
 
-    if (normalized === 'UPDATE NAME') {
-      return new Response(buildTwiml('Send: UPDATE NAME <name>'), {
+    if (['UPDATE NAME', 'UPDATE_NAME'].includes(normalized)) {
+      return new Response(buildTwiml('To update your name, send:\nUPDATE NAME <name>\nExample: UPDATE NAME Vishal'), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
     }
 
-    if (normalized === 'UPDATE CITY') {
-      return new Response(buildTwiml('Send: UPDATE CITY <city>'), {
+    if (['UPDATE CITY', 'UPDATE_CITY'].includes(normalized)) {
+      return new Response(buildTwiml('To update your city, send:\nUPDATE CITY <city>\nExample: UPDATE CITY Botad'), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
     }
 
-    if (normalized === 'UPDATE NAME | CITY') {
-      return new Response(buildTwiml('Send: UPDATE <name> | <city>'), {
+    if (['UPDATE NAME | CITY', 'UPDATE_BOTH'].includes(normalized)) {
+      return new Response(buildTwiml('To update both, send:\nUPDATE <name> | <city>\nExample: UPDATE Vishal Baraiya | Rajkot'), {
         status: 200,
         headers: { 'Content-Type': 'text/xml' },
       });
