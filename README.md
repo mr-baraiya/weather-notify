@@ -1,6 +1,6 @@
 # Weather Notify
 
-Weather Notify sends WhatsApp alerts for heat, rain, and cold conditions.
+Weather Notify delivers real-time weather alerts to WhatsApp subscribers.
 
 ## Documentation
 - [Environment variables](docs/ENV.md)
@@ -21,3 +21,6 @@ Weather Notify sends WhatsApp alerts for heat, rain, and cold conditions.
 - npm run start
 - npm run lint
 - npm run cron
+
+## License
+MIT. See LICENSE.
