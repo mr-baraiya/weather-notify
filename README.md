@@ -38,9 +38,9 @@ The app combines geolocation, weather lookup, WhatsApp notifications, and an adm
 
 ## Screenshots
 
-![Weather Notify preview](public/weather-icon.webp)
+![Weather Notify screenshot](public/README-screenshot.png)
 
-The repository currently includes a visual asset rather than full UI captures. Add updated homepage and dashboard screenshots here after running the app locally.
+Home page screenshot of Weather Notify showing the live weather card and WhatsApp subscription form.
 
 ## Documentation
 
