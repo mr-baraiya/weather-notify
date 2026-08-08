@@ -1,7 +1,9 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { CheckCircle2, MessageCircleMore, Phone, Send, User, MapPin } from 'lucide-react';
+import { User, MapPin, Phone } from 'lucide-react';
+import WhatsAppModal from './WhatsAppModal';
 
 const SubscribeForm = () => {
   const [formData, setFormData] = useState({ name: '', city: '', phone: '' });
@@ -118,7 +120,6 @@ const SubscribeForm = () => {
     }
 
     try {
-      // Check if the phone number already exists
       const fullPhone = `${callingCode}${formData.phone}`;
       const checkResponse = await axios.get(`/api/subscribe/check?phone=${encodeURIComponent(fullPhone)}`);
       if (checkResponse.data.exists) {
@@ -129,13 +130,12 @@ const SubscribeForm = () => {
         return;
       }
 
-      // If not, create the new subscription
       const response = await axios.post('/api/subscribe', {
         ...formData,
         phone: fullPhone,
       });
       if (response.data.success) {
-        setMessage('Subscription successful! Complete the WhatsApp connection below.');
+        setMessage('Subscription successful! Complete the WhatsApp connection in the popup.');
         setWhatsappSetup(response.data.whatsappSetup || null);
         setFormData({ name: '', city: '', phone: '' });
       } else {
@@ -154,7 +154,7 @@ const SubscribeForm = () => {
   };
 
   return (
-    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full max-w-sm mx-auto">
+    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between">
       <h3 className="text-xl sm:text-2xl font-bold text-center mb-6">Subscribe for Alerts</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
@@ -217,64 +217,10 @@ const SubscribeForm = () => {
       {message && <p className="mt-4 text-center text-sm">{message}</p>}
 
       {whatsappSetup && (
-        <div className="mt-6 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-1 shrink-0 text-emerald-400" size={22} />
-            <div>
-              <h4 className="text-lg sm:text-xl font-bold">{whatsappSetup.title}</h4>
-              <p className="mt-1 text-sm sm:text-base text-gray-300">{whatsappSetup.intro}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-3 text-sm sm:text-base">
-            <div className="flex gap-3 rounded-2xl bg-black/20 px-4 py-4">
-              <MessageCircleMore className="mt-0.5 shrink-0 text-sky-400" size={20} />
-              <div>
-                <p className="font-semibold text-white">Step 1: Open WhatsApp.</p>
-                <p className="text-gray-400">Keep this screen open while you switch apps.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 rounded-2xl bg-black/20 px-4 py-4">
-              <Send className="mt-0.5 shrink-0 text-emerald-400" size={20} />
-              <div>
-                <p className="font-semibold text-white">Step 2: Send this exact message:</p>
-                <pre className="mt-2 overflow-x-auto rounded-xl bg-black/40 px-4 py-3 text-sm text-emerald-300">{whatsappSetup.joinMessage}</pre>
-              </div>
-            </div>
-
-            <div className="flex gap-3 rounded-2xl bg-black/20 px-4 py-4">
-              <Phone className="mt-0.5 shrink-0 text-cyan-400" size={20} />
-              <div>
-                <p className="font-semibold text-white">Step 3: Send it to:</p>
-                <pre className="mt-2 overflow-x-auto rounded-xl bg-black/40 px-4 py-3 text-sm text-sky-300">{whatsappSetup.sandboxNumber}</pre>
-              </div>
-            </div>
-
-            <div className="flex gap-3 rounded-2xl bg-black/20 px-4 py-4">
-              <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-400" size={20} />
-              <div>
-                <p className="font-semibold text-white">Step 4: Wait for the confirmation.</p>
-                <p className="mt-2 rounded-xl bg-black/40 px-4 py-3 text-sm text-gray-200">{whatsappSetup.confirmationMessage}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 rounded-2xl bg-black/20 px-4 py-4">
-              <CheckCircle2 className="mt-0.5 shrink-0 text-indigo-400" size={20} />
-              <div className="w-full">
-                <p className="font-semibold text-white">Step 5: Return to Weather Notify and click:</p>
-                <button
-                  type="button"
-                  onClick={() => setWhatsappSetup(null)}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
-                >
-                  <CheckCircle2 size={18} />
-                  {whatsappSetup.returnLabel}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <WhatsAppModal
+          setup={whatsappSetup}
+          onClose={() => setWhatsappSetup(null)}
+        />
       )}
     </div>
   );

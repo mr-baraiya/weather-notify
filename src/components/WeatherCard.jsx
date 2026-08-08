@@ -4,32 +4,46 @@ import { Thermometer, Wind, Droplets } from 'lucide-react';
 const WeatherCard = ({ weather }) => {
   if (!weather) return null;
 
+  const temp = Math.round(weather.main.temp);
+  const feelsLike = Math.round(weather.main.feels_like);
+  const description = weather.weather?.[0]?.description || '';
+  const condition = weather.weather?.[0]?.main || 'Clear';
+
   return (
-    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full max-w-sm mx-auto transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
-      <div className="flex justify-between items-start">
+    <div className="glass-card rounded-4xl p-8 w-full h-full min-h-[380px] flex flex-col justify-between text-left">
+      
+      {/* City & Description */}
+      <div>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">{weather.name}</h2>
+        <p className="text-sm sm:text-base text-gray-400 capitalize mt-1">{description}</p>
+      </div>
+
+      {/* Main Temperature & Weather Icon Side by Side */}
+      <div className="flex items-center justify-between my-auto py-6">
+        <p className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter text-white">
+          {temp}°
+        </p>
+        <div className="text-yellow-400 p-2">
+          <WeatherIcon condition={condition} className="w-16 h-16 sm:w-20 sm:h-20" />
+        </div>
+      </div>
+
+      {/* Bottom Metrics Bar */}
+      <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-5 text-center">
         <div>
-          <h2 className="text-3xl font-bold">{weather.name}</h2>
-          <p className="text-gray-300">{weather.weather[0].description}</p>
+          <p className="text-xs text-gray-400">Feels like</p>
+          <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{feelsLike}°C</p>
         </div>
-        <WeatherIcon condition={weather.weather[0].main} />
-      </div>
-      <div className="mt-8 text-center">
-        <p className="text-5xl sm:text-7xl font-extrabold">{Math.round(weather.main.temp)}°C</p>
-      </div>
-      <div className="mt-6 sm:mt-8 flex justify-around text-sm sm:text-lg">
-        <div className="flex items-center gap-2">
-          <Thermometer size={24} />
-          <span>{Math.round(weather.main.feels_like)}°C</span>
+        <div className="border-x border-white/10">
+          <p className="text-xs text-gray-400">Wind</p>
+          <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{weather.wind.speed} m/s</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Wind size={24} />
-          <span>{weather.wind.speed} m/s</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Droplets size={24} />
-          <span>{weather.main.humidity}%</span>
+        <div>
+          <p className="text-xs text-gray-400">Humidity</p>
+          <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{weather.main.humidity}%</p>
         </div>
       </div>
+
     </div>
   );
 };

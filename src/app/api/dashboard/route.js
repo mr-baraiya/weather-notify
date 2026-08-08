@@ -9,24 +9,42 @@ export async function GET(request) {
   const lon = searchParams.get('lon');
   const hasCoords = lat !== null && lon !== null;
 
-  if (!city && !hasCoords) {
-    return new Response(JSON.stringify({ success: false, message: 'City or coordinates are required' }), { status: 400 });
-  }
+  const targetCity = city || 'Rajkot';
 
   try {
     await connectToDatabase();
 
-    const weatherData = await getWeather(hasCoords ? { lat, lon } : { city });
-    const resolvedCity = city || weatherData?.name;
+    let weatherData = null;
+    try {
+      weatherData = await getWeather(hasCoords ? { lat, lon } : { city: targetCity });
+    } catch (weatherErr) {
+      console.warn('Weather fetch warning in /api/dashboard:', weatherErr.message);
+    }
 
-    const [totalSubscribers, recentSubscriptions, citySubscribers] = await Promise.all([
-      Subscriber.countDocuments({}),
-      Subscriber.find({})
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('name city createdAt'),
-      resolvedCity ? Subscriber.countDocuments({ city: resolvedCity }) : Promise.resolve(0),
-    ]);
+    const resolvedCity = city || weatherData?.name || targetCity;
+
+    let totalSubscribers = 0;
+    let recentSubscriptions = [];
+    let citySubscribers = 0;
+
+    try {
+      const [total, recents, cityCount] = await Promise.all([
+        Subscriber.countDocuments({}),
+        Subscriber.find({})
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('name city createdAt')
+          .lean(),
+        resolvedCity
+          ? Subscriber.countDocuments({ city: { $regex: new RegExp(`^${resolvedCity}$`, 'i') } })
+          : Promise.resolve(0),
+      ]);
+      totalSubscribers = total;
+      recentSubscriptions = recents;
+      citySubscribers = cityCount;
+    } catch (dbErr) {
+      console.error('Database query error in /api/dashboard:', dbErr.message);
+    }
 
     const isHeatAlert = weatherData?.main?.temp > 40;
     const isRainAlert = weatherData?.weather?.[0]?.main === 'Rain';
@@ -47,6 +65,6 @@ export async function GET(request) {
     );
   } catch (error) {
     console.error('Error in /api/dashboard:', error);
-    return new Response(JSON.stringify({ success: false, message: 'Server Error' }), { status: 500 });
+    return new Response(JSON.stringify({ success: false, message: error.message || 'Server Error' }), { status: 500 });
   }
 }

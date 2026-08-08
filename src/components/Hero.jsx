@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import WeatherCard from './WeatherCard';
+import WeatherLoader from './WeatherLoader';
 import SubscribeForm from './SubscribeForm';
 
 const Hero = () => {
@@ -18,74 +19,51 @@ const Hero = () => {
       return response.data.data;
     };
 
-    const loadByCity = async (message) => {
-      if (!canceled && message) {
-        setLocationStatus(message);
-      }
+    const loadInitialWeather = async () => {
+      setLoading(true);
 
       try {
-        const data = await fetchWeather(`/api/weather?city=${encodeURIComponent(defaultCity)}`);
+        const defaultData = await fetchWeather(`/api/weather?city=${encodeURIComponent(defaultCity)}`);
         if (!canceled) {
-          setWeather(data);
-        }
-      } catch (error) {
-        console.error('Error fetching weather:', error);
-        if (!canceled) {
-          setLocationStatus('Unable to fetch weather right now.');
-        }
-      } finally {
-        if (!canceled) {
+          setWeather(defaultData);
           setLoading(false);
         }
+      } catch (err) {
+        console.error('Initial weather fetch error:', err);
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            if (canceled) return;
+            try {
+              const localData = await fetchWeather(
+                `/api/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+              );
+              if (!canceled && localData) {
+                setWeather(localData);
+                setLocationStatus('');
+              }
+            } catch (error) {
+              console.error('Location weather error:', error);
+            }
+          },
+          (error) => {
+            if (canceled) return;
+            if (error.code === error.PERMISSION_DENIED) {
+              setLocationStatus('Showing default weather (Location permission denied)');
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 300000,
+          }
+        );
       }
     };
 
-    const loadByCoords = async (coords) => {
-      let handledFallback = false;
-      try {
-        const data = await fetchWeather(`/api/weather?lat=${coords.latitude}&lon=${coords.longitude}`);
-        if (!canceled) {
-          setWeather(data);
-        }
-      } catch (error) {
-        console.error('Error fetching weather:', error);
-        handledFallback = true;
-        await loadByCity(`Unable to fetch weather for your location. Showing ${defaultCity}.`);
-      } finally {
-        if (!canceled && !handledFallback) {
-          setLoading(false);
-        }
-      }
-    };
-
-    setLoading(true);
-
-    if (!navigator.geolocation) {
-      loadByCity('Geolocation is not supported. Showing Rajkot.');
-      return () => {
-        canceled = true;
-      };
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        loadByCoords(position.coords);
-      },
-      (error) => {
-        let message = 'Unable to access your location. Showing Rajkot.';
-        if (error.code === error.PERMISSION_DENIED) {
-          message = 'Location permission denied. Showing Rajkot.';
-        } else if (error.code === error.TIMEOUT) {
-          message = 'Location request timed out. Showing Rajkot.';
-        }
-        loadByCity(message);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      }
-    );
+    loadInitialWeather();
 
     return () => {
       canceled = true;
@@ -105,11 +83,9 @@ const Hero = () => {
           <p className="text-sm text-gray-400 mb-8">{locationStatus}</p>
         )}
 
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 lg:gap-28 items-stretch px-4">
           {loading ? (
-            <div className="w-full lg:w-auto">
-              <div className="glass-card rounded-4xl p-8 w-full max-w-sm mx-auto h-64 animate-pulse"></div>
-            </div>
+            <WeatherLoader />
           ) : (
             weather && <WeatherCard weather={weather} />
           )}

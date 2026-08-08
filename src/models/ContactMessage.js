@@ -12,6 +12,11 @@ const ContactMessageSchema = new mongoose.Schema({
     required: [true, 'Please provide an email.'],
     maxlength: 200,
   },
+  category: {
+    type: String,
+    required: [true, 'Please select a category.'],
+    maxlength: 100,
+  },
   message: {
     type: String,
     required: [true, 'Please provide a message.'],

@@ -1,0 +1,30 @@
+const WeatherLoader = () => (
+  <div
+    style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+    className="rounded-2xl p-8 w-full h-full min-h-[380px] flex flex-col justify-between"
+  >
+    {/* City + description skeleton */}
+    <div className="space-y-2">
+      <div className="skeleton h-8 w-32 rounded-md" />
+      <div className="skeleton h-4 w-24 rounded-md" />
+    </div>
+
+    {/* Temp + icon skeleton */}
+    <div className="flex items-center justify-between py-4">
+      <div className="skeleton h-20 w-36 rounded-md" />
+      <div className="skeleton h-16 w-16 rounded-full" />
+    </div>
+
+    {/* Stats bar skeleton */}
+    <div className="grid grid-cols-3 gap-2 border-t border-white/6 pt-5">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col items-center gap-2">
+          <div className="skeleton h-3 w-14 rounded" />
+          <div className="skeleton h-5 w-10 rounded" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export default WeatherLoader;

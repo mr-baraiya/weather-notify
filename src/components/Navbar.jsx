@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Menu, Sun } from 'lucide-react';
+import { Sun } from 'lucide-react';
 
 const Navbar = () => {
   return (
@@ -9,23 +9,12 @@ const Navbar = () => {
           <Sun className="text-yellow-400" />
           <span>Weather Notify</span>
         </Link>
-        <div className="hidden md:flex items-center gap-6">
+        <div className="flex items-center gap-6 text-sm">
           <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
           <Link href="/about" className="hover:text-indigo-400 transition-colors">About</Link>
+          <Link href="/faq" className="hover:text-indigo-400 transition-colors">FAQ</Link>
           <Link href="/contact" className="hover:text-indigo-400 transition-colors">Contact</Link>
-          <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">Dashboard</Link>
         </div>
-        <details className="md:hidden">
-          <summary className="cursor-pointer list-none text-gray-300">
-            <Menu className="h-5 w-5" />
-          </summary>
-          <div className="mt-3 flex flex-col gap-2 text-sm">
-            <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
-            <Link href="/about" className="hover:text-indigo-400 transition-colors">About</Link>
-            <Link href="/contact" className="hover:text-indigo-400 transition-colors">Contact</Link>
-            <Link href="/dashboard" className="hover:text-indigo-400 transition-colors">Dashboard</Link>
-          </div>
-        </details>
       </nav>
     </header>
   );

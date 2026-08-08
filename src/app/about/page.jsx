@@ -1,45 +1,93 @@
-const AboutPage = () => {
+import Link from 'next/link';
+
+const what = [
+  {
+    label: 'Instant alerts',
+    desc: 'Know about rain, heatwaves, or severe weather before it hits — not after.',
+  },
+  {
+    label: 'WhatsApp native',
+    desc: 'No app to install, no dashboard to check. Alerts arrive where you already are.',
+  },
+  {
+    label: 'Any city, worldwide',
+    desc: 'Powered by OpenWeather. Works for any major city across the globe.',
+  },
+  {
+    label: 'Set and forget',
+    desc: 'Subscribe once. We handle everything else — monitoring, triggering, sending.',
+  },
+];
+
+export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white px-4 py-12 sm:px-6 sm:py-16">
-      <div className="container mx-auto max-w-4xl">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-6">About Weather Notify</h1>
-        <p className="text-base sm:text-lg text-gray-300 leading-7 sm:leading-8 mb-6">
-          Weather Notify keeps you ahead of sudden weather changes. Subscribe once and get timely WhatsApp alerts
-          when heatwaves or heavy rain are expected in your area.
+    <div className="min-h-screen py-16 sm:py-24 px-4 text-white">
+      <div className="max-w-2xl mx-auto">
+
+        {/* Eyebrow */}
+        <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-5">About</p>
+
+        {/* Hero text */}
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
+          Weather alerts,<br />delivered to WhatsApp.
+        </h1>
+        <p className="text-base text-gray-500 leading-relaxed mb-10 max-w-lg">
+          Weather Notify watches the forecast for your city and sends you a message the moment
+          conditions change. No apps. No notifications to set up. Just a WhatsApp message when it matters.
         </p>
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-5 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Why we built it</h2>
-            <p className="text-gray-300 leading-7">
-              We wanted a simple way to turn live weather data into actionable alerts. Weather Notify focuses on
-              the essentials and delivers them directly to WhatsApp.
-            </p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-5 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">What you get</h2>
-            <ul className="text-gray-300 leading-7 list-disc list-inside space-y-2">
-              <li>Real-time weather updates for your city.</li>
-              <li>Heatwave and rain alerts.</li>
-              <li>Simple subscription experience.</li>
-            </ul>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-5 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Our vision</h2>
-            <p className="text-gray-300 leading-7">
-              Make weather safety effortless by delivering reliable, local alerts to everyone, everywhere.
-            </p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-5 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3">Our mission</h2>
-            <p className="text-gray-300 leading-7">
-              Turn trusted weather data into clear WhatsApp notifications that help people plan their day and
-              stay prepared.
-            </p>
+
+        <div className="flex items-center gap-5 mb-16">
+          <Link href="/" className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg transition-colors">
+            Get started
+          </Link>
+          <Link href="/faq" className="text-sm text-gray-500 hover:text-white transition-colors">
+            Read FAQ →
+          </Link>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-white/6 mb-12" />
+
+        {/* Why */}
+        <div className="mb-12">
+          <h2 className="text-xs text-gray-600 uppercase tracking-widest font-semibold mb-4">Why we built it</h2>
+          <p className="text-sm text-gray-500 leading-7">
+            Weather apps are great until you forget to open them. We built Weather Notify because we
+            wanted something that worked the other way around — instead of you checking the weather,
+            the weather comes to you. One subscription, one message, nothing to remember.
+          </p>
+        </div>
+
+        {/* What you get — numbered list, no icons */}
+        <div>
+          <h2 className="text-xs text-gray-600 uppercase tracking-widest font-semibold mb-6">What you get</h2>
+          <div className="space-y-0 divide-y divide-white/5">
+            {what.map((item, i) => (
+              <div key={i} className="flex gap-6 py-5">
+                <span className="text-xs text-gray-700 font-mono pt-0.5 w-4 shrink-0">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">{item.label}</p>
+                  <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="border-t border-white/6 mt-12 mb-10" />
+
+        {/* Bottom CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+          <p className="text-sm text-gray-500">Ready to try it?</p>
+          <Link href="/" className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+            Subscribe for free →
+          </Link>
+        </div>
+
       </div>
     </div>
   );
-};
-
-export default AboutPage;
+}
