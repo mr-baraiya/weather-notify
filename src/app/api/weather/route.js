@@ -1,4 +1,4 @@
-import { getWeather } from '@/lib/weather';
+import { getWeather, getForecast } from '@/lib/weather';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -13,8 +13,14 @@ export async function GET(request) {
 
   try {
     const query = hasCoords ? { lat, lon } : { city };
-    const weatherData = await getWeather(query);
-    return new Response(JSON.stringify({ success: true, data: weatherData }), { status: 200 });
+    
+    // Fetch both concurrently
+    const [current, forecast] = await Promise.all([
+      getWeather(query),
+      getForecast(query)
+    ]);
+
+    return new Response(JSON.stringify({ success: true, data: { current, forecast } }), { status: 200 });
   } catch (error) {
     const label = hasCoords ? `${lat}, ${lon}` : city;
     console.error(`Error fetching weather for ${label}:`, error);

@@ -16,11 +16,22 @@ const WeatherLoader = () => (
     </div>
 
     {/* Stats bar skeleton */}
-    <div className="grid grid-cols-3 gap-2 border-t border-white/6 pt-5">
+    <div className="grid grid-cols-3 gap-2 border-t border-white/6 pt-5 mb-6">
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex flex-col items-center gap-2">
           <div className="skeleton h-3 w-14 rounded" />
           <div className="skeleton h-5 w-10 rounded" />
+        </div>
+      ))}
+    </div>
+
+    {/* 5-Day Forecast skeleton */}
+    <div className="flex items-center justify-between border-t border-white/6 pt-5">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex flex-col items-center gap-2">
+          <div className="skeleton h-3 w-6 rounded" />
+          <div className="skeleton h-6 w-6 rounded-full" />
+          <div className="skeleton h-3 w-8 rounded" />
         </div>
       ))}
     </div>

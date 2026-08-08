@@ -5,6 +5,13 @@ const SubscriberSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a name.'],
   },
+  email: {
+    type: String,
+    required: [true, 'Please provide an email.'],
+    trim: true,
+    lowercase: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
+  },
   city: {
     type: String,
     required: [true, 'Please provide a city.'],

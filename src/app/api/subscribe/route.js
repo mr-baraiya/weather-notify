@@ -45,9 +45,9 @@ const buildWhatsAppSetup = () => ({
 export async function POST(request) {
   try {
     await connectToDatabase();
-    const { name, city, phone } = await request.json();
+    const { name, city, phone, email } = await request.json();
 
-    if (!name || !city || !phone) {
+    if (!name || !city || !phone || !email) {
       return new Response(JSON.stringify({ success: false, message: 'Missing required fields' }), { status: 400 });
     }
 
@@ -59,6 +59,7 @@ export async function POST(request) {
       name: toTitleCase(name),
       city: toTitleCase(city),
       phone,
+      email,
     });
     await newSubscriber.save();
 

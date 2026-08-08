@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { User, MapPin, Phone } from 'lucide-react';
+import { User, MapPin, Phone, Mail } from 'lucide-react';
 import WhatsAppModal from './WhatsAppModal';
 
 const SubscribeForm = () => {
-  const [formData, setFormData] = useState({ name: '', city: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', city: '', phone: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [whatsappSetup, setWhatsappSetup] = useState(null);
-  const [phoneError, setPhoneError] = useState('');
+  const [formErrors, setFormErrors] = useState({ name: '', city: '', phone: '', email: '' });
   const [checkingPhone, setCheckingPhone] = useState(false);
   const [phoneExists, setPhoneExists] = useState(false);
   const [callingCode, setCallingCode] = useState('+91');
@@ -65,25 +65,24 @@ const SubscribeForm = () => {
     if (name === 'phone') {
       const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
       setFormData({ ...formData, [name]: digitsOnly });
-      setPhoneError('');
+      setFormErrors(prev => ({ ...prev, phone: '' }));
       setPhoneExists(false);
       return;
     }
     setFormData({ ...formData, [name]: value });
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handlePhoneBlur = async () => {
-    if (!formData.phone) {
-      return;
-    }
+    if (!formData.phone) return;
 
     if (!/^\d{10}$/.test(formData.phone)) {
-      setPhoneError('Enter a 10 digit mobile number.');
+      setFormErrors(prev => ({ ...prev, phone: 'Enter a 10 digit mobile number.' }));
       return;
     }
 
     setCheckingPhone(true);
-    setPhoneError('');
+    setFormErrors(prev => ({ ...prev, phone: '' }));
     setPhoneExists(false);
 
     try {
@@ -91,11 +90,11 @@ const SubscribeForm = () => {
       const checkResponse = await axios.get(`/api/subscribe/check?phone=${encodeURIComponent(fullPhone)}`);
       if (checkResponse.data.exists) {
         setPhoneExists(true);
-        setPhoneError('This phone number is already subscribed.');
+        setFormErrors(prev => ({ ...prev, phone: 'This phone number is already subscribed.' }));
       }
     } catch (error) {
       console.error('Phone validation error:', error);
-      setPhoneError('Unable to validate phone number right now.');
+      setFormErrors(prev => ({ ...prev, phone: 'Unable to validate phone number right now.' }));
     } finally {
       setCheckingPhone(false);
     }
@@ -103,6 +102,27 @@ const SubscribeForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Custom Validation
+    let hasError = false;
+    const errors = { name: '', city: '', phone: '', email: '' };
+
+    if (!formData.name.trim()) { errors.name = 'Name is Required'; hasError = true; }
+    if (!formData.city.trim()) { errors.city = 'City is Required'; hasError = true; }
+    if (!formData.email.trim()) {
+      errors.email = 'Email is Required'; hasError = true;
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      errors.email = 'Invalid email'; hasError = true;
+    }
+    if (!formData.phone) {
+      errors.phone = 'Phone is Required'; hasError = true;
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      errors.phone = 'Invalid 10 digit number'; hasError = true;
+    }
+
+    setFormErrors(errors);
+    if (hasError) return;
+
     setLoading(true);
     setMessage('');
     setWhatsappSetup(null);
@@ -113,18 +133,12 @@ const SubscribeForm = () => {
       return;
     }
 
-    if (!/^\d{10}$/.test(formData.phone)) {
-      setPhoneError('Enter a 10 digit mobile number.');
-      setLoading(false);
-      return;
-    }
-
     try {
       const fullPhone = `${callingCode}${formData.phone}`;
       const checkResponse = await axios.get(`/api/subscribe/check?phone=${encodeURIComponent(fullPhone)}`);
       if (checkResponse.data.exists) {
         setPhoneExists(true);
-        setPhoneError('This phone number is already subscribed.');
+        setFormErrors(prev => ({ ...prev, phone: 'This phone number is already subscribed.' }));
         setMessage('This phone number is already subscribed.');
         setLoading(false);
         return;
@@ -137,7 +151,7 @@ const SubscribeForm = () => {
       if (response.data.success) {
         setMessage('Subscription successful! Complete the WhatsApp connection in the popup.');
         setWhatsappSetup(response.data.whatsappSetup || null);
-        setFormData({ name: '', city: '', phone: '' });
+        setFormData({ name: '', city: '', phone: '', email: '' });
       } else {
         setMessage(response.data.message || 'Subscription failed. Please try again.');
       }
@@ -156,55 +170,76 @@ const SubscribeForm = () => {
   return (
     <div className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between">
       <h3 className="text-xl sm:text-2xl font-bold text-center mb-6">Subscribe for Alerts</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <div>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              name="name"
+              placeholder="Name"
+              value={formData.name}
+              onChange={handleChange}
+              className={`w-full bg-white/10 border ${formErrors.name ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
+          {formErrors.name && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.name}</p>}
         </div>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            name="city"
-            placeholder="City"
-            value={formData.city}
-            onChange={handleChange}
-            required
-            className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+
+        <div>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              value={formData.email}
+              onChange={handleChange}
+              className={`w-full bg-white/10 border ${formErrors.email ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
+          {formErrors.email && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.email}</p>}
         </div>
-        <div className="relative">
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="tel"
-            name="phone"
-            placeholder="10 digit mobile number"
-            value={formData.phone}
-            onChange={handleChange}
-            onBlur={handlePhoneBlur}
-            inputMode="numeric"
-            pattern="\d{10}"
-            maxLength={10}
-            required
-            className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-20 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-            {callingCode}
-          </span>
+
+        <div>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              name="city"
+              placeholder="City"
+              value={formData.city}
+              onChange={handleChange}
+              className={`w-full bg-white/10 border ${formErrors.city ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
+          {formErrors.city && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.city}</p>}
         </div>
+
+        <div>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="10 digit mobile number"
+              value={formData.phone}
+              onChange={handleChange}
+              onBlur={handlePhoneBlur}
+              inputMode="numeric"
+              pattern="\d{10}"
+              maxLength={10}
+              className={`w-full bg-white/10 border ${formErrors.phone ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-20 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+              {callingCode}
+            </span>
+          </div>
+          {formErrors.phone && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.phone}</p>}
+        </div>
+
         {locationError && (
-          <p className="text-xs text-gray-400">{locationError}</p>
-        )}
-        {phoneError && (
-          <p className="text-sm text-red-300">{phoneError}</p>
+          <p className="text-xs text-gray-400 mt-1 text-right mr-2">{locationError}</p>
         )}
         <button
           type="submit"

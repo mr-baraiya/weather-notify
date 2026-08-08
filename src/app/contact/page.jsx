@@ -14,13 +14,13 @@ const categories = [
 
 const validate = (data) => {
   const errs = {};
-  if (!data.name.trim()) errs.name = 'Required';
-  else if (data.name.trim().length < 2) errs.name = 'At least 2 characters';
-  if (!data.email.trim()) errs.email = 'Required';
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errs.email = 'Invalid email';
-  if (!data.category) errs.category = 'Select a category';
-  if (!data.message.trim()) errs.message = 'Required';
-  else if (data.message.trim().length < 10) errs.message = 'At least 10 characters';
+  if (!data.name.trim()) errs.name = 'Name is Required';
+  else if (data.name.trim().length < 2) errs.name = 'Name must be at least 2 characters';
+  if (!data.email.trim()) errs.email = 'Email is Required';
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errs.email = 'Please enter a valid email address';
+  if (!data.category) errs.category = 'Please select a category';
+  if (!data.message.trim()) errs.message = 'Message is Required';
+  else if (data.message.trim().length < 10) errs.message = 'Message must be at least 10 characters';
   return errs;
 };
 

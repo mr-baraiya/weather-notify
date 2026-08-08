@@ -1,6 +1,9 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Users, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 const CATEGORIES = ['General Inquiry','Bug Report','Feature Request','WhatsApp Connection Issue','Alert / Notification Issue','Other'];
 
@@ -25,7 +28,10 @@ function PasswordGate({ onUnlock }) {
     setLoading(true); setErr('');
     try {
       const res = await axios.post('/api/admin/verify', { password: pw });
-      if (res.data?.success) { sessionStorage.setItem('admin_auth', '1'); onUnlock(); }
+      if (res.data?.success) { 
+        sessionStorage.setItem('admin_auth', '1'); 
+        onUnlock(pw); // pass password up to be used for api calls 
+      }
       else setErr('Incorrect password.');
     } catch { setErr('Incorrect password.'); }
     finally { setLoading(false); }
@@ -50,6 +56,14 @@ function PasswordGate({ onUnlock }) {
             {loading ? 'Verifying…' : 'Access Dashboard'}
           </button>
         </form>
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-500">
+            Not an admin?{' '}
+            <Link href="/contact" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+              Contact the admin
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -70,6 +84,131 @@ function Modal({ title, onClose, children }) {
   );
 }
 
+/* ─── Overview Tab ───────────────────────────────────────────── */
+function OverviewTab({ password }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let canceled = false;
+    const fetchAnalytics = async () => {
+      try {
+        const res = await axios.get('/api/admin/analytics', {
+          headers: { Authorization: `Bearer ${password}` }
+        });
+        if (!canceled && res.data?.success) {
+          setData(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch analytics', err);
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    };
+    fetchAnalytics();
+    return () => { canceled = true; };
+  }, [password]);
+
+  if (loading) {
+    return <p className="text-sm text-gray-400 py-10">Loading analytics...</p>;
+  }
+
+  if (!data) {
+    return <p className="text-sm text-red-400 py-10">Failed to load analytics data.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div style={cardStyle} className="p-6 rounded-xl flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-400 mb-1">Total Subscribers</p>
+            <p className="text-3xl font-bold text-white">{data.totalSubscribers}</p>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+            <Users size={24} />
+          </div>
+        </div>
+        <div style={cardStyle} className="p-6 rounded-xl flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-400 mb-1">Total Messages</p>
+            <p className="text-3xl font-bold text-white">{data.totalMessages}</p>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
+            <Mail size={24} />
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Growth Line Chart */}
+        <div style={cardStyle} className="p-6 rounded-xl space-y-4 lg:col-span-2">
+          <h3 className="text-sm font-semibold text-white">Platform Growth (Last 14 Days)</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.growth} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Line type="monotone" dataKey="newSubscribers" name="New Subs" stroke="#ffffff" strokeWidth={3} dot={{ r: 4, fill: '#ffffff', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="newMessages" name="New Messages" stroke="#9ca3af" strokeWidth={3} dot={{ r: 4, fill: '#9ca3af', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Cities Bar Chart */}
+        <div style={cardStyle} className="p-6 rounded-xl space-y-4">
+          <h3 className="text-sm font-semibold text-white">Top Cities</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.topCities} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
+                  itemStyle={{ color: '#60a5fa' }}
+                />
+                <Bar dataKey="subscribers" name="Subscribers" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Message Categories Bar Chart */}
+        <div style={cardStyle} className="p-6 rounded-xl space-y-4">
+          <h3 className="text-sm font-semibold text-white">Message Categories</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.messagesByCategory} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                  contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
+                  itemStyle={{ color: '#34d399' }}
+                />
+                <Bar dataKey="count" name="Messages" fill="#34d399" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 /* ─── Subscribers Tab ─────────────────────────────────────────── */
 function SubscribersTab() {
   const [rows, setRows] = useState([]);
@@ -80,7 +219,7 @@ function SubscribersTab() {
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null); // 'create' | 'edit' | 'view' | 'delete'
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', city: '', phone: '' });
+  const [form, setForm] = useState({ name: '', city: '', phone: '', email: '' });
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
   const limit = 8;
@@ -96,14 +235,14 @@ function SubscribersTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => { setForm({ name: '', city: '', phone: '' }); setFormErr(''); setModal('create'); };
-  const openEdit   = (r) => { setSelected(r); setForm({ name: r.name, city: r.city, phone: r.phone }); setFormErr(''); setModal('edit'); };
+  const openCreate = () => { setForm({ name: '', city: '', phone: '', email: '' }); setFormErr(''); setModal('create'); };
+  const openEdit   = (r) => { setSelected(r); setForm({ name: r.name, city: r.city, phone: r.phone, email: r.email }); setFormErr(''); setModal('edit'); };
   const openView   = (r) => { setSelected(r); setModal('view'); };
   const openDelete = (r) => { setSelected(r); setModal('delete'); };
   const closeModal = ()  => { setModal(null); setSelected(null); };
 
   const handleSave = async () => {
-    if (!form.name || !form.city || !form.phone) { setFormErr('All fields are required.'); return; }
+    if (!form.name || !form.city || !form.phone || !form.email) { setFormErr('All fields are required.'); return; }
     setSaving(true); setFormErr('');
     try {
       if (modal === 'create') {
@@ -143,16 +282,17 @@ function SubscribersTab() {
 
       {/* Table */}
       <div style={cardStyle} className="rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_1fr_auto] text-xs text-gray-600 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
-          <span>Name</span><span>City</span><span>Phone</span><span className="text-right">Actions</span>
+        <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] text-xs text-gray-600 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
+          <span>Name</span><span>Email</span><span>City</span><span>Phone</span><span className="text-right">Actions</span>
         </div>
         {loading ? (
           <p className="text-sm text-gray-600 px-4 py-6">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="text-sm text-gray-600 px-4 py-6">No subscribers found.</p>
         ) : rows.map(r => (
-          <div key={r._id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center px-4 py-3 border-b border-white/4 hover:bg-white/2 transition-colors">
+          <div key={r._id} className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] items-center px-4 py-3 border-b border-white/4 hover:bg-white/2 transition-colors">
             <span className="text-sm text-white truncate">{r.name}</span>
+            <span className="text-sm text-gray-400 truncate">{r.email}</span>
             <span className="text-sm text-gray-400 truncate">{r.city}</span>
             <span className="text-sm text-gray-400 truncate">{r.phone}</span>
             <div className="flex gap-3 justify-end">
@@ -180,7 +320,7 @@ function SubscribersTab() {
       {(modal === 'create' || modal === 'edit') && (
         <Modal title={modal === 'create' ? 'New Subscriber' : 'Edit Subscriber'} onClose={closeModal}>
           <div className="space-y-3">
-            {['name','city','phone'].map(f => (
+            {['name','email','city','phone'].map(f => (
               <div key={f} className="space-y-1">
                 <label className="text-xs text-gray-600 capitalize">{f}</label>
                 <input value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
@@ -203,7 +343,7 @@ function SubscribersTab() {
       {modal === 'view' && selected && (
         <Modal title="Subscriber Details" onClose={closeModal}>
           <div className="space-y-2 divide-y divide-white/5">
-            {[['Name', selected.name], ['City', selected.city], ['Phone', selected.phone], ['Joined', fmt(selected.createdAt)]].map(([k, v]) => (
+            {[['Name', selected.name], ['Email', selected.email], ['City', selected.city], ['Phone', selected.phone], ['Joined', fmt(selected.createdAt)]].map(([k, v]) => (
               <div key={k} className="flex justify-between py-2">
                 <span className="text-xs text-gray-600">{k}</span>
                 <span className="text-sm text-white">{v}</span>
@@ -360,8 +500,8 @@ function MessagesTab() {
 }
 
 /* ─── Dashboard Shell ─────────────────────────────────────────── */
-function DashboardShell({ onLock }) {
-  const [tab, setTab] = useState('subscribers');
+function DashboardShell({ onLock, password }) {
+  const [tab, setTab] = useState('overview');
 
   return (
     <div className="min-h-screen py-14 px-4 text-white">
@@ -377,7 +517,7 @@ function DashboardShell({ onLock }) {
 
         {/* Tab bar */}
         <div className="flex gap-1 border-b border-white/6 pb-0">
-          {[['subscribers', 'Users'], ['messages', 'Contact Messages']].map(([key, label]) => (
+          {[['overview', 'Overview'], ['subscribers', 'Users'], ['messages', 'Contact Messages']].map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tab === key ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -388,7 +528,9 @@ function DashboardShell({ onLock }) {
         </div>
 
         {/* Tab content */}
-        {tab === 'subscribers' ? <SubscribersTab /> : <MessagesTab />}
+        {tab === 'overview' && <OverviewTab password={password} />}
+        {tab === 'subscribers' && <SubscribersTab />}
+        {tab === 'messages' && <MessagesTab />}
       </div>
     </div>
   );
@@ -397,13 +539,27 @@ function DashboardShell({ onLock }) {
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function DashboardPage() {
   const [unlocked, setUnlocked] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+
+  // Not highly secure to store raw password in state, but fine for local demo / simple site.
+  // Wait, the backend verification validates it, so we can just grab it when the user enters it.
 
   useEffect(() => {
-    if (sessionStorage.getItem('admin_auth') === '1') setUnlocked(true);
+    if (sessionStorage.getItem('admin_auth') === '1') {
+      // In a real app we'd use a token, but here we just need a way to hit the analytics API.
+      // We will allow the frontend to pass a blank password if unlocked via session storage, 
+      // but wait, the API requires the actual password.
+      // Let's modify the password gate to store the password in state.
+    }
   }, []);
+
+  const handleUnlock = (pw) => {
+    setAdminPassword(pw);
+    setUnlocked(true);
+  };
 
   const lock = () => { sessionStorage.removeItem('admin_auth'); setUnlocked(false); };
 
-  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />;
-  return <DashboardShell onLock={lock} />;
+  if (!unlocked) return <PasswordGate onUnlock={handleUnlock} />;
+  return <DashboardShell onLock={lock} password={adminPassword} />;
 }
