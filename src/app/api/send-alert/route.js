@@ -1,10 +1,16 @@
-// This route will be triggered by the cron job
+// This route is triggered by Vercel Cron at 6 AM IST daily
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { getWeather } from '@/lib/weather';
 import { sendWhatsAppMessage } from '@/lib/twilio';
 
-export async function GET() {
+export async function GET(request) {
+  // Verify cron secret so only Vercel (or authorized caller) can trigger this
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response(JSON.stringify({ success: false, message: 'Unauthorized' }), { status: 401 });
+  }
+
   try {
     await connectToDatabase();
     const subscribers = await Subscriber.find({});
