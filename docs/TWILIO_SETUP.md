@@ -21,6 +21,14 @@ This guide shows how to create a Twilio account, find the credentials this app n
 4. Send the join code from your WhatsApp number to the Twilio sandbox number.
 5. Once joined, note the WhatsApp-enabled Twilio sender number.
 
+If you want the app to display the onboarding steps after a successful registration, set these values in `.env`:
+
+```env
+TWILIO_WHATSAPP_JOIN_MESSAGE=join stand-exclaimed
+TWILIO_WHATSAPP_SANDBOX_NUMBER=+1 415 523 8886
+TWILIO_WHATSAPP_CONFIRMATION_MESSAGE=✅ You are all set! The sandbox can now send/receive messages.
+```
+
 ## Add the Values to `.env.local`
 
 ```env
