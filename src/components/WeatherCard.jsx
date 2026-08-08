@@ -13,7 +13,7 @@ const WeatherCard = ({ weather }) => {
   const condition = current.weather?.[0]?.main || 'Clear';
 
   return (
-    <div className="glass-card rounded-4xl p-8 w-full h-full min-h-[380px] flex flex-col justify-between text-left">
+    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between text-left">
       
       {/* City & Description */}
       <div>
@@ -49,7 +49,7 @@ const WeatherCard = ({ weather }) => {
 
       {/* 5-Day Forecast */}
       {forecast.length > 0 && (
-        <div className="flex items-center justify-between border-t border-white/10 pt-5">
+        <div className="flex items-center justify-between gap-4 overflow-x-auto border-t border-white/10 pt-5 pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {forecast.map((day, idx) => (
             <div key={idx} className="flex flex-col items-center">
               <p className="text-xs text-gray-400 mb-2">{day.day}</p>
