@@ -12,6 +12,7 @@ const Footer = () => {
           <Link href="/about" className="hover:text-white transition-colors">About</Link>
           <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
           <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+          <a href="https://github.com/mr-baraiya/weather-notify" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a>
           <Link href="/dashboard" className="hover:text-white transition-colors">Admin Dashboard</Link>
         </div>
       </div>
