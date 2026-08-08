@@ -11,6 +11,9 @@ export const metadata = {
   icons: {
     icon: '/weather-icon.webp',
   },
+  verification: {
+    google: 'awoGcg4dHW-tYhjA9C982UbU6WHYLUY2u0LJCZAngyw',
+  },
 };
 
 export default function RootLayout({ children }) {
