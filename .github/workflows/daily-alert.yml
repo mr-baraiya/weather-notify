@@ -2,7 +2,7 @@ name: Daily Weather Alert
 
 on:
   schedule:
-    - cron: '30 0 * * *' # 6:00 AM IST = 00:30 UTC
+    - cron: '30 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -11,4 +11,7 @@ jobs:
 
     steps:
       - name: Trigger weather alert
-        run: curl -f https://weather-notify-tau.vercel.app/api/send-alert
+        run: |
+          curl -f \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://weather-notify-tau.vercel.app/api/send-alert
