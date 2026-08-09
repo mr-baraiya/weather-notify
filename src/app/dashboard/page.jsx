@@ -46,9 +46,17 @@ function PasswordGate({ onUnlock }) {
           <p className="text-sm text-gray-500 mt-1">Enter the admin password to continue.</p>
         </div>
         <form onSubmit={submit} className="space-y-3">
-          <input type="password" placeholder="Password" value={pw} autoFocus
+          <input
+            type="password"
+            name="password"
+            id="admin-password"
+            placeholder="Password"
+            value={pw}
+            autoFocus
+            autoComplete="current-password"
             onChange={e => { setPw(e.target.value); setErr(''); }}
-            className={inputCls} style={{ ...inputStyle, border: `1px solid ${err ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}` }}
+            className={inputCls}
+            style={{ ...inputStyle, border: `1px solid ${err ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.08)'}` }}
           />
           {err && <p className="text-xs text-red-400">{err}</p>}
           <button type="submit" disabled={loading}
@@ -541,24 +549,27 @@ export default function DashboardPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
 
-  // Not highly secure to store raw password in state, but fine for local demo / simple site.
-  // Wait, the backend verification validates it, so we can just grab it when the user enters it.
-
   useEffect(() => {
-    if (sessionStorage.getItem('admin_auth') === '1') {
-      // In a real app we'd use a token, but here we just need a way to hit the analytics API.
-      // We will allow the frontend to pass a blank password if unlocked via session storage, 
-      // but wait, the API requires the actual password.
-      // Let's modify the password gate to store the password in state.
+    // Restore session if previously authenticated in this browser session
+    const stored = sessionStorage.getItem('admin_auth_pw');
+    if (stored) {
+      setAdminPassword(stored);
+      setUnlocked(true);
     }
   }, []);
 
   const handleUnlock = (pw) => {
+    // Store in sessionStorage so a page refresh doesn't log out the admin
+    sessionStorage.setItem('admin_auth_pw', pw);
     setAdminPassword(pw);
     setUnlocked(true);
   };
 
-  const lock = () => { sessionStorage.removeItem('admin_auth'); setUnlocked(false); };
+  const lock = () => {
+    sessionStorage.removeItem('admin_auth_pw');
+    setAdminPassword('');
+    setUnlocked(false);
+  };
 
   if (!unlocked) return <PasswordGate onUnlock={handleUnlock} />;
   return <DashboardShell onLock={lock} password={adminPassword} />;
