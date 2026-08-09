@@ -1,10 +1,14 @@
 name: Daily Weather Alert
+
 on:
   schedule:
-    - cron: '30 0 * * *'   # 6 AM IST = 00:30 UTC
+    - cron: '30 0 * * *' # 6:00 AM IST = 00:30 UTC
+  workflow_dispatch:
+
 jobs:
   send-alert:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Trigger alert
-        run: curl https://weather-notify-tau.vercel.app/api/send-alert
+      - name: Trigger weather alert
+        run: curl -f https://weather-notify-tau.vercel.app/api/send-alert
