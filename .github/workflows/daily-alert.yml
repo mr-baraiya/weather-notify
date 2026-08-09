@@ -7,4 +7,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger alert
-        run: curl https://your-domain.com/api/send-alert
+        run: curl https://weather-notify-tau.vercel.app/api/send-alert
