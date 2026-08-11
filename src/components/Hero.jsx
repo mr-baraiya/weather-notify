@@ -4,6 +4,7 @@ import axios from 'axios';
 import WeatherCard from './WeatherCard';
 import WeatherLoader from './WeatherLoader';
 import SubscribeForm from './SubscribeForm';
+import LandingFeatures from './LandingFeatures';
 
 const Hero = () => {
   const [weather, setWeather] = useState(null);
@@ -91,6 +92,8 @@ const Hero = () => {
           )}
           <SubscribeForm />
         </div>
+
+        <LandingFeatures weather={weather} loading={loading} />
       </div>
     </section>
   );

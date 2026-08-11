@@ -19,6 +19,7 @@ const Footer = () => {
         </p>
         <div className="flex flex-wrap items-center gap-6 text-xs sm:text-sm">
           <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <Link href="/weather-map" className="hover:text-white transition-colors">Weather Map</Link>
           <Link href="/about" className="hover:text-white transition-colors">About</Link>
           <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
           <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>

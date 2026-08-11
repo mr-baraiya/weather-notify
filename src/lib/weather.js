@@ -69,58 +69,115 @@ export const getForecast = async (query) => {
 
   try {
     const response = await axios.get(FORECAST_URL, { params });
-    const list = response.data.list;
-    
-    // Group by day
+    const list = response.data.list || [];
+
+    // Extract Hourly Forecast (Next 8 slots)
+    const hourly = list.slice(0, 8).map((item) => {
+      const dateObj = new Date(item.dt * 1000);
+      const timeStr = dateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        hour12: true,
+      });
+      return {
+        time: timeStr,
+        temp: Math.round(item.main.temp),
+        condition: item.weather[0]?.main || 'Clear',
+        pop: Math.round((item.pop || 0) * 100),
+      };
+    });
+
+    // Group by day for 5-Day Forecast
     const dailyData = {};
-    list.forEach(item => {
-      // The API returns dt_txt like "2024-03-24 15:00:00"
+    list.forEach((item) => {
       const date = item.dt_txt.split(' ')[0];
+      const popVal = Math.round((item.pop || 0) * 100);
+
       if (!dailyData[date]) {
         dailyData[date] = {
           min: item.main.temp_min,
           max: item.main.temp_max,
-          conditions: [item.weather[0].main], // keep track to find most common
+          conditions: [item.weather[0].main],
+          maxPop: popVal,
         };
       } else {
         dailyData[date].min = Math.min(dailyData[date].min, item.main.temp_min);
         dailyData[date].max = Math.max(dailyData[date].max, item.main.temp_max);
         dailyData[date].conditions.push(item.weather[0].main);
+        dailyData[date].maxPop = Math.max(dailyData[date].maxPop, popVal);
       }
     });
 
-    // Format into an array of 5 days
-    const forecast = Object.keys(dailyData).slice(0, 5).map(date => {
-      const dayData = dailyData[date];
-      // Get the most frequent condition for the day
-      const conditionCounts = dayData.conditions.reduce((acc, curr) => {
-        acc[curr] = (acc[curr] || 0) + 1;
-        return acc;
-      }, {});
-      let mainCondition = Object.keys(conditionCounts)[0];
-      let maxCount = conditionCounts[mainCondition];
-      for (const cond in conditionCounts) {
-        if (conditionCounts[cond] > maxCount) {
-          maxCount = conditionCounts[cond];
-          mainCondition = cond;
+    const forecast = Object.keys(dailyData)
+      .slice(0, 5)
+      .map((date, idx) => {
+        const dayData = dailyData[date];
+        const conditionCounts = dayData.conditions.reduce((acc, curr) => {
+          acc[curr] = (acc[curr] || 0) + 1;
+          return acc;
+        }, {});
+
+        let mainCondition = Object.keys(conditionCounts)[0];
+        let maxCount = conditionCounts[mainCondition];
+        for (const cond in conditionCounts) {
+          if (conditionCounts[cond] > maxCount) {
+            maxCount = conditionCounts[cond];
+            mainCondition = cond;
+          }
         }
-      }
 
-      // Format date to short day name (e.g., 'Mon')
-      const dateObj = new Date(date);
-      const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateObj = new Date(date);
+        const dayName =
+          idx === 0
+            ? 'Today'
+            : idx === 1
+            ? 'Tomorrow'
+            : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
 
-      return {
-        day: dayName,
-        min: Math.round(dayData.min),
-        max: Math.round(dayData.max),
-        condition: mainCondition,
-      };
-    });
+        return {
+          day: dayName,
+          min: Math.round(dayData.min),
+          max: Math.round(dayData.max),
+          condition: mainCondition,
+          pop: dayData.maxPop,
+        };
+      });
 
-    return forecast;
+    return { forecast, hourly };
   } catch (error) {
     console.error(`Could not fetch forecast for ${label}:`, error);
-    throw new Error('Failed to fetch forecast data');
+    return { forecast: [], hourly: [] };
+  }
+};
+
+export const getAirPollution = async (lat, lon) => {
+  if (!lat || !lon) return null;
+  const POLLUTION_URL = 'https://api.openweathermap.org/data/2.5/air_pollution';
+  try {
+    const response = await axios.get(POLLUTION_URL, {
+      params: { lat, lon, appid: API_KEY },
+    });
+    const data = response.data?.list?.[0];
+    if (!data) return null;
+
+    const aqiMap = {
+      1: { label: 'Good' },
+      2: { label: 'Fair' },
+      3: { label: 'Moderate' },
+      4: { label: 'Poor' },
+      5: { label: 'Very Poor' },
+    };
+
+    const aqi = data.main?.aqi || 1;
+    return {
+      aqi,
+      status: aqiMap[aqi]?.label || 'Fair',
+      pm25: Math.round(data.components?.pm2_5 || 0),
+      pm10: Math.round(data.components?.pm10 || 0),
+      no2: Math.round(data.components?.no2 || 0),
+      o3: Math.round(data.components?.o3 || 0),
+    };
+  } catch (error) {
+    console.error(`Air pollution fetch error for ${lat}, ${lon}:`, error.message);
+    return null;
   }
 };
