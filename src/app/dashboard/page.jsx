@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Mail, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Users, Mail, Send, CheckCircle, AlertCircle, LayoutDashboard, MessageSquare, Radio, Eye, Pencil, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 
 const CATEGORIES = ['General Inquiry','Bug Report','Feature Request','WhatsApp Connection Issue','Alert / Notification Issue','Other'];
@@ -11,6 +11,17 @@ const CATEGORIES = ['General Inquiry','Bug Report','Feature Request','WhatsApp C
 const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
 const inputStyle = { background: '#080e1f', border: '1px solid rgba(255,255,255,0.08)' };
 const inputCls = 'w-full rounded-lg px-3 py-2 text-sm text-white placeholder-gray-700 focus:outline-none';
+
+// Abbreviate long category names for the chart X-axis
+const CAT_SHORT = {
+  'General Inquiry':            'General',
+  'Bug Report':                 'Bug',
+  'Feature Request':            'Feature',
+  'WhatsApp Connection Issue':  'WA Issue',
+  'Alert / Notification Issue': 'Alerts',
+  'Other':                      'Other',
+};
+const shortCat = (name) => CAT_SHORT[name] ?? name;
 
 function fmt(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
@@ -28,9 +39,9 @@ function PasswordGate({ onUnlock }) {
     setLoading(true); setErr('');
     try {
       const res = await axios.post('/api/admin/verify', { password: pw });
-      if (res.data?.success) { 
-        sessionStorage.setItem('admin_auth', '1'); 
-        onUnlock(pw); // pass password up to be used for api calls 
+      if (res.data?.success) {
+        sessionStorage.setItem('admin_auth', '1');
+        onUnlock(pw);
       }
       else setErr('Incorrect password.');
     } catch { setErr('Incorrect password.'); }
@@ -80,11 +91,20 @@ function PasswordGate({ onUnlock }) {
 /* ─── Modal ──────────────────────────────────────────────────── */
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div style={cardStyle} className="w-full max-w-md rounded-2xl p-6 text-white space-y-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
+      <div
+        style={cardStyle}
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 text-white space-y-4 max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-lg leading-none transition-colors">✕</button>
+          <button
+            onClick={onClose}
+            className="text-gray-600 hover:text-gray-300 transition-colors p-1 -mr-1 rounded-lg hover:bg-white/5"
+            aria-label="Close modal"
+          >
+            <X size={18} />
+          </button>
         </div>
         {children}
       </div>
@@ -118,7 +138,16 @@ function OverviewTab({ password }) {
   }, [password]);
 
   if (loading) {
-    return <p className="text-sm text-gray-400 py-10">Loading analytics...</p>;
+    return (
+      <div className="space-y-4 py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1,2].map(i => (
+            <div key={i} style={cardStyle} className="p-6 rounded-xl skeleton h-24" />
+          ))}
+        </div>
+        <div style={cardStyle} className="p-6 rounded-xl skeleton h-64" />
+      </div>
+    );
   }
 
   if (!data) {
@@ -126,62 +155,62 @@ function OverviewTab({ password }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div style={cardStyle} className="p-6 rounded-xl flex items-center justify-between">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div style={cardStyle} className="p-4 sm:p-6 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Total Subscribers</p>
-            <p className="text-3xl font-bold text-white">{data.totalSubscribers}</p>
+            <p className="text-xs text-gray-400 mb-1">Total Subscribers</p>
+            <p className="text-2xl sm:text-3xl font-bold text-white">{data.totalSubscribers}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-            <Users size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+            <Users size={20} />
           </div>
         </div>
-        <div style={cardStyle} className="p-6 rounded-xl flex items-center justify-between">
+        <div style={cardStyle} className="p-4 sm:p-6 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Total Messages</p>
-            <p className="text-3xl font-bold text-white">{data.totalMessages}</p>
+            <p className="text-xs text-gray-400 mb-1">Total Messages</p>
+            <p className="text-2xl sm:text-3xl font-bold text-white">{data.totalMessages}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
-            <Mail size={24} />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
+            <Mail size={20} />
           </div>
         </div>
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+
         {/* Growth Line Chart */}
-        <div style={cardStyle} className="p-6 rounded-xl space-y-4 lg:col-span-2">
+        <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4 lg:col-span-2">
           <h3 className="text-sm font-semibold text-white">Platform Growth (Last 14 Days)</h3>
-          <div className="h-64 w-full">
+          <div className="h-48 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.growth} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <LineChart data={data.growth} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip 
+                <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
                   contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
                   itemStyle={{ color: '#fff' }}
                 />
-                <Line type="monotone" dataKey="newSubscribers" name="New Subs" stroke="#ffffff" strokeWidth={3} dot={{ r: 4, fill: '#ffffff', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="newMessages" name="New Messages" stroke="#9ca3af" strokeWidth={3} dot={{ r: 4, fill: '#9ca3af', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="newSubscribers" name="New Subs" stroke="#ffffff" strokeWidth={3} dot={{ r: 3, fill: '#ffffff', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="newMessages" name="New Messages" stroke="#9ca3af" strokeWidth={3} dot={{ r: 3, fill: '#9ca3af', strokeWidth: 0 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Top Cities Bar Chart */}
-        <div style={cardStyle} className="p-6 rounded-xl space-y-4">
+        <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4">
           <h3 className="text-sm font-semibold text-white">Top Cities</h3>
-          <div className="h-64 w-full">
+          <div className="h-48 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.topCities} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <BarChart data={data.topCities} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip 
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.02)' }}
                   contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
                   itemStyle={{ color: '#60a5fa' }}
@@ -193,15 +222,26 @@ function OverviewTab({ password }) {
         </div>
 
         {/* Message Categories Bar Chart */}
-        <div style={cardStyle} className="p-6 rounded-xl space-y-4">
+        <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4">
           <h3 className="text-sm font-semibold text-white">Message Categories</h3>
-          <div className="h-64 w-full">
+          <div className="h-56 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.messagesByCategory} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <BarChart data={data.messagesByCategory} margin={{ top: 5, right: 5, left: -25, bottom: 55 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip 
+                <XAxis
+                  dataKey="name"
+                  stroke="rgba(255,255,255,0.3)"
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                  angle={-40}
+                  textAnchor="end"
+                  interval={0}
+                  tickFormatter={shortCat}
+                  height={60}
+                />
+                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.02)' }}
                   contentStyle={{ backgroundColor: '#0f1629', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '8px' }}
                   itemStyle={{ color: '#34d399' }}
@@ -225,7 +265,7 @@ function SubscribersTab() {
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState(null); // 'create' | 'edit' | 'view' | 'delete'
+  const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ name: '', city: '', phone: '', email: '' });
   const [formErr, setFormErr] = useState('');
@@ -275,21 +315,33 @@ function SubscribersTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input placeholder="Search name or phone…" value={search}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <input
+          placeholder="Search name or phone…"
+          value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className={`${inputCls} flex-1`} style={inputStyle} />
-        <input placeholder="Filter by city…" value={cityFilter}
-          onChange={e => { setCityFilter(e.target.value); setPage(1); }}
-          className={`${inputCls} w-40`} style={inputStyle} />
-        <button onClick={openCreate}
-          className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 transition-colors whitespace-nowrap">
-          + New User
-        </button>
+          className={`${inputCls} flex-1`}
+          style={inputStyle}
+        />
+        <div className="flex gap-2">
+          <input
+            placeholder="City…"
+            value={cityFilter}
+            onChange={e => { setCityFilter(e.target.value); setPage(1); }}
+            className={`${inputCls} flex-1 sm:w-36`}
+            style={inputStyle}
+          />
+          <button
+            onClick={openCreate}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 transition-colors whitespace-nowrap shrink-0"
+          >
+            + New
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div style={cardStyle} className="rounded-xl overflow-hidden">
+      {/* Desktop Table – hidden on mobile */}
+      <div style={cardStyle} className="rounded-xl overflow-hidden hidden sm:block">
         <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] text-xs text-gray-600 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
           <span>Name</span><span>Email</span><span>City</span><span>Phone</span><span className="text-right">Actions</span>
         </div>
@@ -299,10 +351,10 @@ function SubscribersTab() {
           <p className="text-sm text-gray-600 px-4 py-6">No subscribers found.</p>
         ) : rows.map(r => (
           <div key={r._id} className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] items-center px-4 py-3 border-b border-white/4 hover:bg-white/2 transition-colors">
-            <span className="text-sm text-white truncate">{r.name}</span>
-            <span className="text-sm text-gray-400 truncate">{r.email}</span>
-            <span className="text-sm text-gray-400 truncate">{r.city}</span>
-            <span className="text-sm text-gray-400 truncate">{r.phone}</span>
+            <span className="text-sm text-white truncate pr-2">{r.name}</span>
+            <span className="text-sm text-gray-400 truncate pr-2">{r.email}</span>
+            <span className="text-sm text-gray-400 truncate pr-2">{r.city}</span>
+            <span className="text-sm text-gray-400 truncate pr-2">{r.phone}</span>
             <div className="flex gap-3 justify-end">
               <button onClick={() => openView(r)} className="text-xs text-gray-500 hover:text-white transition-colors">View</button>
               <button onClick={() => openEdit(r)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Edit</button>
@@ -312,15 +364,40 @@ function SubscribersTab() {
         ))}
       </div>
 
+      {/* Mobile Card List – shown only on mobile */}
+      <div className="sm:hidden space-y-2">
+        {loading ? (
+          <p className="text-sm text-gray-600 py-4">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-gray-600 py-4">No subscribers found.</p>
+        ) : rows.map(r => (
+          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{r.name}</p>
+                <p className="text-xs text-gray-500 truncate">{r.email}</p>
+              </div>
+              <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0">{r.city}</span>
+            </div>
+            <p className="text-xs text-gray-500">{r.phone}</p>
+            <div className="flex gap-3 pt-1 border-t border-white/5">
+              <button onClick={() => openView(r)} className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"><Eye size={12}/>View</button>
+              <button onClick={() => openEdit(r)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"><Pencil size={12}/>Edit</button>
+              <button onClick={() => openDelete(r)} className="text-xs text-red-500 hover:text-red-400 transition-colors flex items-center gap-1 ml-auto"><Trash2 size={12}/>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Pagination */}
       <div className="flex items-center justify-between text-xs text-gray-600">
         <span>{total} total</span>
-        <div className="flex gap-2">
+        <div className="flex gap-1 items-center">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 rounded disabled:opacity-30 hover:text-white transition-colors">← Prev</button>
+            className="px-3 py-1.5 rounded-lg disabled:opacity-30 hover:text-white hover:bg-white/5 transition-colors">← Prev</button>
           <span className="px-2 py-1">{page} / {pages || 1}</span>
           <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 rounded disabled:opacity-30 hover:text-white transition-colors">Next →</button>
+            className="px-3 py-1.5 rounded-lg disabled:opacity-30 hover:text-white hover:bg-white/5 transition-colors">Next →</button>
         </div>
       </div>
 
@@ -338,9 +415,9 @@ function SubscribersTab() {
             ))}
             {formErr && <p className="text-xs text-red-400">{formErr}</p>}
             <div className="flex gap-3 pt-1">
-              <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2 transition-colors">Cancel</button>
+              <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2.5 transition-colors">Cancel</button>
               <button onClick={handleSave} disabled={saving}
-                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium py-2 transition-colors">
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors">
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -350,19 +427,19 @@ function SubscribersTab() {
 
       {modal === 'view' && selected && (
         <Modal title="Subscriber Details" onClose={closeModal}>
-          <div className="space-y-2 divide-y divide-white/5">
+          <div className="space-y-0 divide-y divide-white/5">
             {[['Name', selected.name], ['Email', selected.email], ['City', selected.city], ['Phone', selected.phone], ['Joined', fmt(selected.createdAt)]].map(([k, v]) => (
-              <div key={k} className="flex justify-between py-2">
-                <span className="text-xs text-gray-600">{k}</span>
-                <span className="text-sm text-white">{v}</span>
+              <div key={k} className="flex justify-between py-2.5">
+                <span className="text-xs text-gray-600 w-16 shrink-0">{k}</span>
+                <span className="text-sm text-white text-right break-all">{v}</span>
               </div>
             ))}
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => { closeModal(); openEdit(selected); }}
-              className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2 transition-colors">Edit</button>
+              className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 transition-colors">Edit</button>
             <button onClick={() => { closeModal(); openDelete(selected); }}
-              className="flex-1 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm py-2 transition-colors">Delete</button>
+              className="flex-1 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm py-2.5 transition-colors">Delete</button>
           </div>
         </Modal>
       )}
@@ -372,9 +449,9 @@ function SubscribersTab() {
           <p className="text-sm text-gray-400">Remove <span className="text-white font-medium">{selected.name}</span>? This cannot be undone.</p>
           {formErr && <p className="text-xs text-red-400">{formErr}</p>}
           <div className="flex gap-3">
-            <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2 transition-colors">Cancel</button>
+            <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2.5 transition-colors">Cancel</button>
             <button onClick={handleDelete} disabled={saving}
-              className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium py-2 transition-colors">
+              className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors">
               {saving ? 'Deleting…' : 'Delete'}
             </button>
           </div>
@@ -423,19 +500,27 @@ function MessagesTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input placeholder="Search name, email or message…" value={search}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <input
+          placeholder="Search name, email or message…"
+          value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className={`${inputCls} flex-1`} style={inputStyle} />
-        <select value={catFilter} onChange={e => { setCatFilter(e.target.value); setPage(1); }}
-          className={`${inputCls} w-auto`} style={inputStyle}>
+          className={`${inputCls} flex-1`}
+          style={inputStyle}
+        />
+        <select
+          value={catFilter}
+          onChange={e => { setCatFilter(e.target.value); setPage(1); }}
+          className={`${inputCls} sm:w-auto`}
+          style={inputStyle}
+        >
           <option value="">All categories</option>
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 
-      {/* Table */}
-      <div style={cardStyle} className="rounded-xl overflow-hidden">
+      {/* Desktop Table – hidden on mobile */}
+      <div style={cardStyle} className="rounded-xl overflow-hidden hidden sm:block">
         <div className="grid grid-cols-[1fr_1fr_1.5fr_auto] text-xs text-gray-600 uppercase tracking-wider px-4 py-2.5 border-b border-white/5">
           <span>Name</span><span>Category</span><span>Email</span><span className="text-right">Actions</span>
         </div>
@@ -445,9 +530,9 @@ function MessagesTab() {
           <p className="text-sm text-gray-600 px-4 py-6">No messages found.</p>
         ) : rows.map(r => (
           <div key={r._id} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-center px-4 py-3 border-b border-white/4 hover:bg-white/2 transition-colors">
-            <span className="text-sm text-white truncate">{r.name}</span>
-            <span className="text-xs text-indigo-300 truncate">{r.category}</span>
-            <span className="text-sm text-gray-400 truncate">{r.email}</span>
+            <span className="text-sm text-white truncate pr-2">{r.name}</span>
+            <span className="text-xs text-indigo-300 truncate pr-2">{r.category}</span>
+            <span className="text-sm text-gray-400 truncate pr-2">{r.email}</span>
             <div className="flex gap-3 justify-end">
               <button onClick={() => openView(r)} className="text-xs text-gray-500 hover:text-white transition-colors">View</button>
               <button onClick={() => openDelete(r)} className="text-xs text-red-500 hover:text-red-400 transition-colors">Delete</button>
@@ -456,15 +541,41 @@ function MessagesTab() {
         ))}
       </div>
 
+      {/* Mobile Card List – shown only on mobile */}
+      <div className="sm:hidden space-y-2">
+        {loading ? (
+          <p className="text-sm text-gray-600 py-4">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-gray-600 py-4">No messages found.</p>
+        ) : rows.map(r => (
+          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{r.name}</p>
+                <p className="text-xs text-gray-500 truncate">{r.email}</p>
+              </div>
+              <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0 text-right leading-5">{r.category}</span>
+            </div>
+            {r.message && (
+              <p className="text-xs text-gray-500 line-clamp-2">{r.message}</p>
+            )}
+            <div className="flex gap-3 pt-1 border-t border-white/5">
+              <button onClick={() => openView(r)} className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"><Eye size={12}/>View</button>
+              <button onClick={() => openDelete(r)} className="text-xs text-red-500 hover:text-red-400 transition-colors flex items-center gap-1 ml-auto"><Trash2 size={12}/>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Pagination */}
       <div className="flex items-center justify-between text-xs text-gray-600">
         <span>{total} total</span>
-        <div className="flex gap-2">
+        <div className="flex gap-1 items-center">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 rounded disabled:opacity-30 hover:text-white transition-colors">← Prev</button>
+            className="px-3 py-1.5 rounded-lg disabled:opacity-30 hover:text-white hover:bg-white/5 transition-colors">← Prev</button>
           <span className="px-2 py-1">{page} / {pages || 1}</span>
           <button disabled={page >= pages} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 rounded disabled:opacity-30 hover:text-white transition-colors">Next →</button>
+            className="px-3 py-1.5 rounded-lg disabled:opacity-30 hover:text-white hover:bg-white/5 transition-colors">Next →</button>
         </div>
       </div>
 
@@ -473,9 +584,9 @@ function MessagesTab() {
         <Modal title="Contact Message" onClose={closeModal}>
           <div className="space-y-0 divide-y divide-white/5">
             {[['Name', selected.name], ['Email', selected.email], ['Category', selected.category], ['Date', fmt(selected.createdAt)]].map(([k, v]) => (
-              <div key={k} className="flex justify-between py-2.5">
+              <div key={k} className="flex justify-between py-2.5 gap-3">
                 <span className="text-xs text-gray-600 shrink-0 w-20">{k}</span>
-                <span className="text-sm text-white text-right">{v}</span>
+                <span className="text-sm text-white text-right break-all">{v}</span>
               </div>
             ))}
             <div className="py-3">
@@ -484,7 +595,7 @@ function MessagesTab() {
             </div>
           </div>
           <button onClick={() => { closeModal(); openDelete(selected); }}
-            className="w-full rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 text-sm py-2 transition-colors">
+            className="w-full rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 text-sm py-2.5 transition-colors">
             Delete Message
           </button>
         </Modal>
@@ -495,9 +606,9 @@ function MessagesTab() {
         <Modal title="Delete Message" onClose={closeModal}>
           <p className="text-sm text-gray-400">Delete message from <span className="text-white font-medium">{selected.name}</span>? This cannot be undone.</p>
           <div className="flex gap-3">
-            <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2 transition-colors">Cancel</button>
+            <button onClick={closeModal} className="flex-1 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-white py-2.5 transition-colors">Cancel</button>
             <button onClick={handleDelete} disabled={deleting}
-              className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium py-2 transition-colors">
+              className="flex-1 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors">
               {deleting ? 'Deleting…' : 'Delete'}
             </button>
           </div>
@@ -517,10 +628,9 @@ function BroadcastTab({ password }) {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState(null); // { success, message }
+  const [result, setResult] = useState(null);
   const dropdownRef = useRef(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -531,7 +641,6 @@ function BroadcastTab({ password }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Fetch subscribers for the dropdown
   useEffect(() => {
     if (target !== 'specific') { setSubscribers([]); setSelectedSub(null); setSubscriberSearch(''); return; }
     let canceled = false;
@@ -569,7 +678,7 @@ function BroadcastTab({ password }) {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-5 sm:space-y-6 w-full sm:max-w-2xl">
       {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-white">Send Message</h2>
@@ -577,9 +686,9 @@ function BroadcastTab({ password }) {
       </div>
 
       {/* Target selector */}
-      <div style={cardStyle} className="rounded-xl p-5 space-y-4">
+      <div style={cardStyle} className="rounded-xl p-4 sm:p-5 space-y-4">
         <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Recipients</p>
-        <div className="flex gap-3">
+        <div className="flex flex-row gap-2 sm:gap-3">
           {[['all', 'All Subscribers'], ['specific', 'Specific Subscriber']].map(([val, label]) => (
             <button
               key={val}
@@ -615,7 +724,6 @@ function BroadcastTab({ password }) {
                 >✕</button>
               )}
 
-              {/* Dropdown list */}
               {dropdownOpen && !selectedSub && (
                 <div
                   style={{ background: '#080e1f', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -629,22 +737,22 @@ function BroadcastTab({ password }) {
                     <button
                       key={s._id}
                       onClick={() => { setSelectedSub(s); setDropdownOpen(false); setSubscriberSearch(''); }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex justify-between items-center"
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex justify-between items-center gap-2"
                     >
-                      <span className="font-medium text-white">{s.name}</span>
-                      <span className="text-xs text-gray-600">{s.phone}</span>
+                      <span className="font-medium text-white truncate">{s.name}</span>
+                      <span className="text-xs text-gray-600 shrink-0">{s.phone}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
             {selectedSub && (
-              <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }} className="rounded-lg px-4 py-3 flex justify-between items-center">
-                <div>
+              <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }} className="rounded-lg px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+                <div className="min-w-0">
                   <p className="text-sm text-white font-medium">{selectedSub.name}</p>
-                  <p className="text-xs text-indigo-400">{selectedSub.email} · {selectedSub.phone}</p>
+                  <p className="text-xs text-indigo-400 truncate">{selectedSub.email} · {selectedSub.phone}</p>
                 </div>
-                <span className="text-xs text-indigo-300 bg-indigo-600/20 px-2 py-0.5 rounded-full">{selectedSub.city}</span>
+                <span className="text-xs text-indigo-300 bg-indigo-600/20 px-2 py-0.5 rounded-full shrink-0">{selectedSub.city}</span>
               </div>
             )}
           </div>
@@ -652,7 +760,7 @@ function BroadcastTab({ password }) {
       </div>
 
       {/* Message composer */}
-      <div style={cardStyle} className="rounded-xl p-5 space-y-4">
+      <div style={cardStyle} className="rounded-xl p-4 sm:p-5 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Message</p>
           <span className={`text-xs ${ message.length > 1500 ? 'text-red-400' : 'text-gray-600'}`}>{message.length} / 1600</span>
@@ -661,7 +769,7 @@ function BroadcastTab({ password }) {
           value={message}
           onChange={e => { setMessage(e.target.value); setResult(null); }}
           placeholder={`Hi {name},\n\nType your custom message here…`}
-          rows={7}
+          rows={6}
           maxLength={1600}
           className={`${inputCls} resize-none leading-relaxed`}
           style={inputStyle}
@@ -699,38 +807,61 @@ function BroadcastTab({ password }) {
 }
 
 /* ─── Dashboard Shell ─────────────────────────────────────────── */
+
+const TABS = [
+  { key: 'overview',     label: 'Overview',         Icon: LayoutDashboard },
+  { key: 'subscribers',  label: 'Users',             Icon: Users           },
+  { key: 'messages',     label: 'Contact Messages',  Icon: MessageSquare   },
+  { key: 'broadcast',    label: 'Send Message',      Icon: Radio           },
+];
+
 function DashboardShell({ onLock, password }) {
   const [tab, setTab] = useState('overview');
 
   return (
-    <div className="min-h-screen py-14 px-4 text-white">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen py-8 sm:py-14 px-3 sm:px-4 text-white">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-1">Admin</p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Dashboard</h1>
           </div>
-          <button onClick={onLock} className="text-xs text-gray-600 hover:text-gray-300 transition-colors mt-1">Lock →</button>
+          <button
+            onClick={onLock}
+            className="text-xs text-gray-600 hover:text-gray-300 transition-colors mt-1 px-3 py-1.5 rounded-lg border border-white/5 hover:border-white/10 hover:bg-white/5"
+          >
+            Lock →
+          </button>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex gap-1 border-b border-white/6 pb-0">
-          {[['overview', 'Overview'], ['subscribers', 'Users'], ['messages', 'Contact Messages'], ['broadcast', 'Send Message']].map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                tab === key ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}>
-              {label}
-            </button>
-          ))}
+        {/* Tab bar – scrollable on mobile */}
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <div className="flex gap-0 border-b border-white/6 pb-0 min-w-max sm:min-w-0 px-3 sm:px-0">
+            {TABS.map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                title={label}
+                aria-label={label}
+                className={`flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                  tab === key ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <Icon size={18} className="shrink-0 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab content */}
-        {tab === 'overview' && <OverviewTab password={password} />}
-        {tab === 'subscribers' && <SubscribersTab />}
-        {tab === 'messages' && <MessagesTab />}
-        {tab === 'broadcast' && <BroadcastTab password={password} />}
+        <div className="pb-8">
+          {tab === 'overview'    && <OverviewTab password={password} />}
+          {tab === 'subscribers' && <SubscribersTab />}
+          {tab === 'messages'    && <MessagesTab />}
+          {tab === 'broadcast'   && <BroadcastTab password={password} />}
+        </div>
       </div>
     </div>
   );
@@ -742,7 +873,6 @@ export default function DashboardPage() {
   const [adminPassword, setAdminPassword] = useState('');
 
   useEffect(() => {
-    // Restore session if previously authenticated in this browser session
     const stored = sessionStorage.getItem('admin_auth_pw');
     if (stored) {
       setAdminPassword(stored);
@@ -751,7 +881,6 @@ export default function DashboardPage() {
   }, []);
 
   const handleUnlock = (pw) => {
-    // Store in sessionStorage so a page refresh doesn't log out the admin
     sessionStorage.setItem('admin_auth_pw', pw);
     setAdminPassword(pw);
     setUnlocked(true);
