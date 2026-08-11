@@ -50,9 +50,9 @@ export const getUVStatus = (uv) => {
   return `${uv} — Extreme`;
 };
 
-/* ─── 11 EXACT WHATSAPP MESSAGE TEMPLATE BUILDERS ───────────────────────── */
+/* ─── WHATSAPP MESSAGE TEMPLATE BUILDERS ────────────────────────────────── */
 
-// 1. Daily Morning Weather Alert
+// 1. Daily Morning Weather Alert (Automated 6 AM IST Dispatch)
 export function buildDailyMorningAlert(data) {
   const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset } = data;
   return `Good Morning!
@@ -74,6 +74,28 @@ Sunrise: ${sunrise}
 Sunset: ${sunset}
 
 Have a great day!
+— Weather Notify`;
+}
+
+// 1b. On-Demand Weather Response (Manual User Input Command)
+export function buildOnDemandWeatherAlert(data) {
+  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset } = data;
+  return `Weather Update for ${city}, ${state}
+
+Temperature: ${Math.round(temp)}°C
+Feels Like: ${Math.round(feelsLike)}°C
+Condition: ${condition}
+
+Today's Forecast
+High: ${Math.round(high)}°C
+Low: ${Math.round(low)}°C
+Rain Probability: ${Math.round(pop)}%
+Humidity: ${humidity}%
+Wind: ${windSpeed} m/s
+
+Sunrise: ${sunrise}
+Sunset: ${sunset}
+
 — Weather Notify`;
 }
 

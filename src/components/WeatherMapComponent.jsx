@@ -13,8 +13,8 @@ const createCustomMarkerIcon = (temp, city) => {
       <div style="
         background: rgba(15, 23, 42, 0.92);
         backdrop-filter: blur(12px);
-        border: 2px solid rgba(56, 189, 248, 0.7);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        border: 2px solid rgba(56, 189, 248, 0.8);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.6);
         color: #ffffff;
         padding: 6px 12px;
         border-radius: 12px;
@@ -57,6 +57,17 @@ function ChangeMapView({ center, zoom }) {
 /* ─── Layer Definitions & Legends ─────────────────────────────────────── */
 const LAYERS = [
   {
+    id: 'temp_new',
+    name: 'Temperature',
+    description: 'Thermal heat map distribution from freezing to extreme heat.',
+    legend: [
+      { color: '#2b83ba', label: 'Cool (< 15°C)' },
+      { color: '#abdda4', label: 'Mild (15°C - 25°C)' },
+      { color: '#fdae61', label: 'Warm (25°C - 35°C)' },
+      { color: '#d7191c', label: 'Extreme Heat (> 35°C)' },
+    ],
+  },
+  {
     id: 'precipitation_new',
     name: 'Rain / Precip',
     description: 'Displays real-time rainfall & precipitation density across the map.',
@@ -71,19 +82,8 @@ const LAYERS = [
     name: 'Clouds',
     description: 'Satellite cloud cover density percentage.',
     legend: [
-      { color: 'rgba(255, 255, 255, 0.3)', label: 'Scattered Clouds (20% - 50%)' },
-      { color: 'rgba(255, 255, 255, 0.7)', label: 'Overcast Sky (> 80%)' },
-    ],
-  },
-  {
-    id: 'temp_new',
-    name: 'Temperature',
-    description: 'Thermal heat map distribution from freezing to extreme heat.',
-    legend: [
-      { color: '#2b83ba', label: 'Cool (< 15°C)' },
-      { color: '#abdda4', label: 'Mild (15°C - 25°C)' },
-      { color: '#fdae61', label: 'Warm (25°C - 35°C)' },
-      { color: '#d7191c', label: 'Extreme Heat (> 35°C)' },
+      { color: 'rgba(255, 255, 255, 0.4)', label: 'Scattered Clouds (20% - 50%)' },
+      { color: 'rgba(255, 255, 255, 0.8)', label: 'Overcast Sky (> 80%)' },
     ],
   },
   {
@@ -99,7 +99,7 @@ const LAYERS = [
 ];
 
 export default function WeatherMapComponent({ weather }) {
-  const [activeLayer, setActiveLayer] = useState('precipitation_new');
+  const [activeLayer, setActiveLayer] = useState('temp_new');
 
   const current = weather?.current || {};
   const lat = current.coord?.lat || 22.3039;
@@ -120,11 +120,16 @@ export default function WeatherMapComponent({ weather }) {
       
       {/* Layer Selection Section */}
       <div>
-        <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold mb-4">
-          Select Radar Overlay
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold">
+            Select Radar Overlay
+          </h2>
+          <span className="text-[11px] text-slate-300 font-mono">
+            Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
+          </span>
+        </div>
 
-        {/* 4 Layer Toggle Buttons Styled Like About Page (No Icons) */}
+        {/* 4 Layer Toggle Buttons Styled Like About Page */}
         <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full">
           {LAYERS.map((layer) => {
             const isActive = activeLayer === layer.id;
@@ -134,7 +139,7 @@ export default function WeatherMapComponent({ weather }) {
                 onClick={() => setActiveLayer(layer.id)}
                 className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors border ${
                   isActive
-                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30'
+                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30 font-bold'
                     : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -148,7 +153,7 @@ export default function WeatherMapComponent({ weather }) {
       {/* Main Map Container Frame */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.8)',
+          background: 'rgba(15, 23, 42, 0.9)',
           backdropFilter: 'blur(24px)',
           border: '1px solid rgba(255, 255, 255, 0.16)',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
@@ -163,18 +168,19 @@ export default function WeatherMapComponent({ weather }) {
         >
           <ChangeMapView center={centerPosition} zoom={8} />
 
-          {/* OpenStreetMap Dark Base Layer */}
+          {/* CartoDB High-Contrast Dark Map Base Layer */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Single Weather Layer Overlay via Next.js Proxy */}
+          {/* OpenWeather Overlay Layer with High Contrast Z-Index */}
           <TileLayer
             key={activeLayer}
             url={`/api/weather/tile?layer=${activeLayer}&z={z}&x={x}&y={y}`}
-            opacity={0.7}
+            opacity={0.85}
             maxZoom={18}
+            zIndex={10}
           />
 
           {/* City Weather Marker */}
@@ -199,7 +205,7 @@ export default function WeatherMapComponent({ weather }) {
         {/* Dynamic Legend Card Overlay */}
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.88)',
+            background: 'rgba(15, 23, 42, 0.92)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
           }}

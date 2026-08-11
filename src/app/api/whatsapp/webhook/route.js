@@ -3,7 +3,7 @@ import Subscriber from '@/models/Subscriber';
 import { getFullWeatherData } from '@/lib/weather';
 import { sendWhatsAppMenu } from '@/lib/twilio';
 import { toTitleCase } from '@/lib/format';
-import { buildDailyMorningAlert, formatTime } from '@/lib/alertTemplates';
+import { buildOnDemandWeatherAlert, formatTime } from '@/lib/alertTemplates';
 
 const toE164 = (value) => {
   if (!value) {
@@ -52,7 +52,8 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
   const sunrise = formatTime(sys.sunrise, tzOffset);
   const sunset = formatTime(sys.sunset, tzOffset);
 
-  return buildDailyMorningAlert({
+  // Manual command response without "Good Morning!" or "Have a great day!"
+  return buildOnDemandWeatherAlert({
     city: current.name || cityName,
     state: 'Gujarat',
     temp,
