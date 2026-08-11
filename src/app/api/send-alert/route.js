@@ -1,6 +1,6 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
-import { getWeather } from '@/lib/weather';
+import { getFullWeatherData } from '@/lib/weather';
 import { sendWhatsAppMessage } from '@/lib/twilio';
 import { evaluateWeatherAlerts } from '@/lib/alertTemplates';
 
@@ -17,12 +17,11 @@ export async function GET(request) {
 
     for (const subscriber of subscribers) {
       try {
-        const weatherData = await getWeather(subscriber.city);
-        const alerts = evaluateWeatherAlerts(subscriber, weatherData);
+        const weatherBundle = await getFullWeatherData(subscriber.city);
+        const alerts = evaluateWeatherAlerts(subscriber, weatherBundle);
 
         for (const alert of alerts) {
           await sendWhatsAppMessage(subscriber.phone, alert.text);
-          // Update anti-spam cooldown timestamp in DB
           subscriber[alert.type] = new Date();
           await subscriber.save();
           sentCount++;
@@ -54,8 +53,8 @@ export async function POST(request) {
 
     let sentCount = 0;
     for (const subscriber of subscribers) {
-      const weatherData = await getWeather(subscriber.city);
-      const alerts = evaluateWeatherAlerts(subscriber, weatherData, alertType);
+      const weatherBundle = await getFullWeatherData(subscriber.city);
+      const alerts = evaluateWeatherAlerts(subscriber, weatherBundle, alertType);
 
       for (const alert of alerts) {
         await sendWhatsAppMessage(subscriber.phone, alert.text);

@@ -1,15 +1,19 @@
 /* ─── Weather Notify — WhatsApp Message Templates & Notification Rules ────── */
 
 /**
- * Format Time (e.g. 6:12 AM)
+ * Format Time with City Timezone (e.g. 6:12 AM)
+ * OpenWeather timezone is in seconds (e.g. 19800 for India IST +5:30)
  */
-export const formatTime = (timestamp) => {
+export const formatTime = (timestamp, timezoneOffsetSeconds = 19800) => {
   if (!timestamp) return '--:--';
-  return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const tzOffset = (timezoneOffsetSeconds !== undefined && timezoneOffsetSeconds !== null) ? timezoneOffsetSeconds : 19800;
+  const date = new Date((timestamp + tzOffset) * 1000);
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 || 12;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  return `${formattedHours}:${formattedMinutes} ${ampm}`;
 };
 
 /**
@@ -287,33 +291,47 @@ export function canSendAlert(lastSentDate, cooldownHours = 12) {
 
 /* ─── AUTOMATED ALERT EVALUATOR ────────────────────────────────────────── */
 export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride = null) {
-  if (!weatherData || !weatherData.current) return [];
+  if (!weatherData || (!weatherData.current && !weatherData.main)) return [];
 
   const alertsToSend = [];
-  const current = weatherData.current;
+  const current = weatherData.current || weatherData;
   const main = current.main || {};
   const sys = current.sys || {};
   const weatherArr = current.weather || [{}];
+  const forecast = weatherData.forecast || [];
   const hourly = weatherData.hourly || [];
   const airPollution = weatherData.airPollution || { aqi: 2, status: 'Fair', pm25: 7, pm10: 26 };
+  const tzOffset = current.timezone !== undefined ? current.timezone : 19800; // India IST default 19800 (+5:30)
 
   const city = current.name || subscriber.city || 'Rajkot';
-  const temp = main.temp || 30;
-  const feelsLike = main.feels_like || 34;
-  const humidity = main.humidity || 69;
-  const windMps = current.wind?.speed || 7.2;
+  const temp = main.temp !== undefined ? main.temp : 30;
+  const feelsLike = main.feels_like !== undefined ? main.feels_like : 33;
+  const humidity = main.humidity !== undefined ? main.humidity : 63;
+  const windMps = current.wind?.speed !== undefined ? current.wind.speed : 4.19;
   const windKmh = Math.round(windMps * 3.6);
   const windDir = getWindDirection(current.wind?.deg);
   const conditionMain = weatherArr[0]?.main || 'Clear';
   const conditionDesc = weatherArr[0]?.description || 'clear sky';
   const visibilityKm = current.visibility ? (current.visibility / 1000).toFixed(1) : 10.0;
 
-  const sunrise = formatTime(sys.sunrise);
-  const sunset = formatTime(sys.sunset);
+  // Accurate sunrise and sunset using city timezone offset
+  const sunrise = formatTime(sys.sunrise, tzOffset);
+  const sunset = formatTime(sys.sunset, tzOffset);
 
-  const high = main.temp_max || temp + 3;
-  const low = main.temp_min || temp - 4;
-  const pop = hourly[0]?.pop || 0;
+  // Extract real today high/low and rain probability from 5-day forecast
+  let high = forecast[0]?.max;
+  let low = forecast[0]?.min;
+  let pop = forecast[0]?.pop;
+
+  if (high === undefined || high === null) {
+    high = Math.round(temp + 4);
+  }
+  if (low === undefined || low === null) {
+    low = Math.max(15, Math.round(temp - 3));
+  }
+  if (pop === undefined || pop === null) {
+    pop = hourly[0]?.pop || 0;
+  }
 
   const uvIndex = Math.min(11, Math.max(1, Math.round(temp / 4.5)));
   const uvStatus = getUVStatus(uvIndex);
@@ -343,10 +361,10 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
     uvIndex,
     uvStatus,
     maxPop: pop,
-    tomorrowHigh: high - 1,
-    tomorrowLow: low - 1,
-    tomorrowPop: Math.max(0, pop - 20),
-    tomorrowCondition: 'Partly Cloudy',
+    tomorrowHigh: forecast[1]?.max || high - 1,
+    tomorrowLow: forecast[1]?.min || low - 1,
+    tomorrowPop: forecast[1]?.pop || Math.max(0, pop - 20),
+    tomorrowCondition: forecast[1]?.condition || 'Partly Cloudy',
   };
 
   // If specific alert type override requested (e.g. from manual test trigger)

@@ -1,6 +1,6 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
-import { getWeather } from '@/lib/weather';
+import { getFullWeatherData } from '@/lib/weather';
 import { sendWhatsAppMenu } from '@/lib/twilio';
 import { toTitleCase } from '@/lib/format';
 import { buildDailyMorningAlert, formatTime } from '@/lib/alertTemplates';
@@ -16,27 +16,44 @@ const toE164 = (value) => {
   return `+${normalized}`;
 };
 
-const buildWeatherMessage = (cityName, weatherData) => {
-  const current = weatherData.current || weatherData;
+const buildWeatherMessage = (cityName, weatherBundle) => {
+  const current = weatherBundle?.current || {};
+  const forecast = weatherBundle?.forecast || [];
+  const hourly = weatherBundle?.hourly || [];
+
   const main = current.main || {};
   const sys = current.sys || {};
   const weatherArr = current.weather || [{}];
-  const hourly = weatherData.hourly || [];
+  const tzOffset = current.timezone !== undefined ? current.timezone : 19800;
 
   const temp = main.temp !== undefined ? main.temp : 30;
-  const feelsLike = main.feels_like !== undefined ? main.feels_like : 34;
+  const feelsLike = main.feels_like !== undefined ? main.feels_like : 33;
   const condition = weatherArr[0]?.main || 'Clear';
-  const high = main.temp_max !== undefined ? main.temp_max : temp + 3;
-  const low = main.temp_min !== undefined ? main.temp_min : temp - 4;
-  const pop = hourly[0]?.pop !== undefined ? hourly[0].pop : 0;
-  const humidity = main.humidity !== undefined ? main.humidity : 69;
-  const windSpeed = current.wind?.speed !== undefined ? current.wind.speed : 7.2;
 
-  const sunrise = formatTime(sys.sunrise);
-  const sunset = formatTime(sys.sunset);
+  // Real today high & low from 5-day forecast
+  let high = forecast[0]?.max;
+  let low = forecast[0]?.min;
+  let pop = forecast[0]?.pop;
+
+  if (high === undefined || high === null) {
+    high = Math.round(temp + 4);
+  }
+  if (low === undefined || low === null) {
+    low = Math.max(15, Math.round(temp - 3));
+  }
+  if (pop === undefined || pop === null) {
+    pop = hourly[0]?.pop || 0;
+  }
+
+  const humidity = main.humidity !== undefined ? main.humidity : 63;
+  const windSpeed = current.wind?.speed !== undefined ? current.wind.speed : 4.19;
+
+  // Accurate sunrise and sunset using city timezone offset
+  const sunrise = formatTime(sys.sunrise, tzOffset);
+  const sunset = formatTime(sys.sunset, tzOffset);
 
   return buildDailyMorningAlert({
-    city: cityName,
+    city: current.name || cityName,
     state: 'Gujarat',
     temp,
     feelsLike,
@@ -183,8 +200,8 @@ export async function POST(request) {
         });
       }
 
-      const weatherData = await getWeather(targetCity);
-      const message = buildWeatherMessage(targetCity, weatherData);
+      const weatherBundle = await getFullWeatherData(targetCity);
+      const message = buildWeatherMessage(targetCity, weatherBundle);
 
       return new Response(buildTwiml(message), {
         status: 200,

@@ -70,14 +70,17 @@ export const getForecast = async (query) => {
   try {
     const response = await axios.get(FORECAST_URL, { params });
     const list = response.data.list || [];
+    const cityData = response.data.city || {};
+    const tzOffset = cityData.timezone !== undefined ? cityData.timezone : 19800;
 
     // Extract Hourly Forecast (Next 8 slots)
     const hourly = list.slice(0, 8).map((item) => {
-      const dateObj = new Date(item.dt * 1000);
-      const timeStr = dateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        hour12: true,
-      });
+      const dateObj = new Date((item.dt + tzOffset) * 1000);
+      const hours = dateObj.getUTCHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      const timeStr = `${formattedHours} ${ampm}`;
+
       return {
         time: timeStr,
         temp: Math.round(item.main.temp),
@@ -180,4 +183,26 @@ export const getAirPollution = async (lat, lon) => {
     console.error(`Air pollution fetch error for ${lat}, ${lon}:`, error.message);
     return null;
   }
+};
+
+/**
+ * Unified Helper to fetch complete weather data bundle (Current, Forecast, Air Quality)
+ */
+export const getFullWeatherData = async (query) => {
+  const current = await getWeather(query);
+  const { lat, lon } = current.coord || {};
+  const [forecastData, airPollution] = await Promise.all([
+    getForecast(query),
+    lat && lon ? getAirPollution(lat, lon) : Promise.resolve(null),
+  ]);
+
+  const forecast = Array.isArray(forecastData) ? forecastData : forecastData.forecast || [];
+  const hourly = forecastData.hourly || [];
+
+  return {
+    current,
+    forecast,
+    hourly,
+    airPollution,
+  };
 };
