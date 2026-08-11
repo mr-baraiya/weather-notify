@@ -20,6 +20,7 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
   const current = weatherBundle?.current || {};
   const forecast = weatherBundle?.forecast || [];
   const hourly = weatherBundle?.hourly || [];
+  const airPollution = weatherBundle?.airPollution || null;
 
   const main = current.main || {};
   const sys = current.sys || {};
@@ -66,8 +67,13 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
     windSpeed,
     sunrise,
     sunset,
+    aqi: airPollution?.aqi ?? null,
+    aqiStatus: airPollution?.status ?? null,
+    pm25: airPollution?.pm25 ?? undefined,
+    pm10: airPollution?.pm10 ?? undefined,
   });
 };
+
 
 const buildTwiml = (message) => {
   const safeMessage = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

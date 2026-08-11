@@ -117,7 +117,7 @@ export default function WeatherMapComponent({ weather }) {
 
   return (
     <div className="w-full space-y-6 text-left">
-      
+
       {/* Layer Selection Section */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
@@ -137,11 +137,10 @@ export default function WeatherMapComponent({ weather }) {
               <button
                 key={layer.id}
                 onClick={() => setActiveLayer(layer.id)}
-                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors border ${
-                  isActive
+                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors border ${isActive
                     ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30 font-bold'
                     : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
               >
                 <span>{layer.name}</span>
               </button>

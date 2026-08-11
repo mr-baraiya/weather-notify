@@ -54,7 +54,8 @@ export const getUVStatus = (uv) => {
 
 // 1. Daily Morning Weather Alert (Automated 6 AM IST Dispatch)
 export function buildDailyMorningAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset } = data;
+  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus, pm25, pm10 } = data;
+  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}${pm25 !== undefined ? `\nPM2.5: ${pm25} µg/m³` : ''}${pm10 !== undefined ? ` | PM10: ${pm10} µg/m³` : ''}` : '';
   return `Good Morning!
 
 Weather Update for ${city}, ${state}
@@ -68,7 +69,7 @@ High: ${Math.round(high)}°C
 Low: ${Math.round(low)}°C
 Rain Probability: ${Math.round(pop)}%
 Humidity: ${humidity}%
-Wind: ${windSpeed} m/s
+Wind: ${windSpeed} m/s${aqiLine}
 
 Sunrise: ${sunrise}
 Sunset: ${sunset}
@@ -79,7 +80,8 @@ Have a great day!
 
 // 1b. On-Demand Weather Response (Manual User Input Command)
 export function buildOnDemandWeatherAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset } = data;
+  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus, pm25, pm10 } = data;
+  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}${pm25 !== undefined ? `\nPM2.5: ${pm25} µg/m³` : ''}${pm10 !== undefined ? ` | PM10: ${pm10} µg/m³` : ''}` : '';
   return `Weather Update for ${city}, ${state}
 
 Temperature: ${Math.round(temp)}°C
@@ -91,7 +93,7 @@ High: ${Math.round(high)}°C
 Low: ${Math.round(low)}°C
 Rain Probability: ${Math.round(pop)}%
 Humidity: ${humidity}%
-Wind: ${windSpeed} m/s
+Wind: ${windSpeed} m/s${aqiLine}
 
 Sunrise: ${sunrise}
 Sunset: ${sunset}
@@ -376,6 +378,7 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
     sunrise,
     sunset,
     aqi: airPollution.aqi,
+    aqiStatus: airPollution.status,
     status: airPollution.status,
     pm25: airPollution.pm25,
     pm10: airPollution.pm10,
