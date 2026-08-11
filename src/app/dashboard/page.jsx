@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Mail } from 'lucide-react';
+import { Users, Mail, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 const CATEGORIES = ['General Inquiry','Bug Report','Feature Request','WhatsApp Connection Issue','Alert / Notification Issue','Other'];
@@ -507,6 +507,197 @@ function MessagesTab() {
   );
 }
 
+/* ─── Broadcast Tab ──────────────────────────────────────────── */
+function BroadcastTab({ password }) {
+  const [target, setTarget] = useState('all');
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [subscribers, setSubscribers] = useState([]);
+  const [selectedSub, setSelectedSub] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null); // { success, message }
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Fetch subscribers for the dropdown
+  useEffect(() => {
+    if (target !== 'specific') { setSubscribers([]); setSelectedSub(null); setSubscriberSearch(''); return; }
+    let canceled = false;
+    const fetch = async () => {
+      setLoadingSubs(true);
+      try {
+        const q = new URLSearchParams({ search: subscriberSearch, page: 1, limit: 20 });
+        const res = await axios.get(`/api/admin/subscribers?${q}`);
+        if (!canceled && res.data?.success) setSubscribers(res.data.data.subscribers);
+      } catch { }
+      finally { if (!canceled) setLoadingSubs(false); }
+    };
+    fetch();
+    return () => { canceled = true; };
+  }, [target, subscriberSearch]);
+
+  const handleSend = async () => {
+    if (!message.trim()) { setResult({ success: false, message: 'Please enter a message.' }); return; }
+    if (target === 'specific' && !selectedSub) { setResult({ success: false, message: 'Please select a subscriber.' }); return; }
+    setSending(true); setResult(null);
+    try {
+      const payload = {
+        message: message.trim(),
+        target,
+        ...(target === 'specific' ? { subscriberId: selectedSub._id } : {}),
+      };
+      const res = await axios.post('/api/admin/broadcast', payload, {
+        headers: { Authorization: `Bearer ${password}` },
+      });
+      setResult({ success: res.data.success, message: res.data.message });
+      if (res.data.success) setMessage('');
+    } catch (e) {
+      setResult({ success: false, message: e.response?.data?.message || 'Failed to send message.' });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h2 className="text-lg font-semibold text-white">Send Message</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Send a custom WhatsApp message to a subscriber or all subscribers. Use <code className="text-indigo-400 bg-indigo-500/10 px-1 py-0.5 rounded text-xs">{'{name}'}</code> to personalise with their name.</p>
+      </div>
+
+      {/* Target selector */}
+      <div style={cardStyle} className="rounded-xl p-5 space-y-4">
+        <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Recipients</p>
+        <div className="flex gap-3">
+          {[['all', 'All Subscribers'], ['specific', 'Specific Subscriber']].map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => { setTarget(val); setResult(null); }}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                target === val
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
+                  : 'border-white/8 text-gray-500 hover:text-gray-300 hover:border-white/15'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Specific subscriber picker */}
+        {target === 'specific' && (
+          <div className="space-y-2" ref={dropdownRef}>
+            <label className="text-xs text-gray-500">Search subscriber</label>
+            <div className="relative">
+              <input
+                value={selectedSub ? `${selectedSub.name} — ${selectedSub.phone}` : subscriberSearch}
+                onChange={e => { setSubscriberSearch(e.target.value); setSelectedSub(null); setDropdownOpen(true); }}
+                onFocus={() => setDropdownOpen(true)}
+                placeholder="Search by name or phone…"
+                className={inputCls}
+                style={inputStyle}
+              />
+              {selectedSub && (
+                <button
+                  onClick={() => { setSelectedSub(null); setSubscriberSearch(''); setDropdownOpen(false); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 text-xs transition-colors"
+                >✕</button>
+              )}
+
+              {/* Dropdown list */}
+              {dropdownOpen && !selectedSub && (
+                <div
+                  style={{ background: '#080e1f', border: '1px solid rgba(255,255,255,0.08)' }}
+                  className="absolute z-30 top-full mt-1 w-full rounded-lg overflow-hidden shadow-2xl"
+                >
+                  {loadingSubs ? (
+                    <p className="text-xs text-gray-600 px-4 py-3">Loading…</p>
+                  ) : subscribers.length === 0 ? (
+                    <p className="text-xs text-gray-600 px-4 py-3">No subscribers found.</p>
+                  ) : subscribers.map(s => (
+                    <button
+                      key={s._id}
+                      onClick={() => { setSelectedSub(s); setDropdownOpen(false); setSubscriberSearch(''); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-white/5 transition-colors flex justify-between items-center"
+                    >
+                      <span className="font-medium text-white">{s.name}</span>
+                      <span className="text-xs text-gray-600">{s.phone}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedSub && (
+              <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }} className="rounded-lg px-4 py-3 flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-white font-medium">{selectedSub.name}</p>
+                  <p className="text-xs text-indigo-400">{selectedSub.email} · {selectedSub.phone}</p>
+                </div>
+                <span className="text-xs text-indigo-300 bg-indigo-600/20 px-2 py-0.5 rounded-full">{selectedSub.city}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Message composer */}
+      <div style={cardStyle} className="rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Message</p>
+          <span className={`text-xs ${ message.length > 1500 ? 'text-red-400' : 'text-gray-600'}`}>{message.length} / 1600</span>
+        </div>
+        <textarea
+          value={message}
+          onChange={e => { setMessage(e.target.value); setResult(null); }}
+          placeholder={`Hi {name},\n\nType your custom message here…`}
+          rows={7}
+          maxLength={1600}
+          className={`${inputCls} resize-none leading-relaxed`}
+          style={inputStyle}
+        />
+        <p className="text-xs text-gray-700">Tip: <code className="text-indigo-400">{'{name}'}</code> will be replaced with each subscriber's name automatically.</p>
+      </div>
+
+      {/* Result banner */}
+      {result && (
+        <div
+          style={{
+            background: result.success ? 'rgba(52,211,153,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `1px solid ${result.success ? 'rgba(52,211,153,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          }}
+          className="rounded-xl px-4 py-3 flex items-start gap-3"
+        >
+          {result.success
+            ? <CheckCircle size={18} className="text-emerald-400 mt-0.5 shrink-0" />
+            : <AlertCircle size={18} className="text-red-400 mt-0.5 shrink-0" />}
+          <p className={`text-sm ${ result.success ? 'text-emerald-300' : 'text-red-300'}`}>{result.message}</p>
+        </div>
+      )}
+
+      {/* Send button */}
+      <button
+        onClick={handleSend}
+        disabled={sending || !message.trim() || (target === 'specific' && !selectedSub)}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium py-3 transition-all shadow-lg shadow-indigo-900/30"
+      >
+        <Send size={16} />
+        {sending ? 'Sending…' : target === 'all' ? 'Send to All Subscribers' : 'Send to Selected Subscriber'}
+      </button>
+    </div>
+  );
+}
+
 /* ─── Dashboard Shell ─────────────────────────────────────────── */
 function DashboardShell({ onLock, password }) {
   const [tab, setTab] = useState('overview');
@@ -525,9 +716,9 @@ function DashboardShell({ onLock, password }) {
 
         {/* Tab bar */}
         <div className="flex gap-1 border-b border-white/6 pb-0">
-          {[['overview', 'Overview'], ['subscribers', 'Users'], ['messages', 'Contact Messages']].map(([key, label]) => (
+          {[['overview', 'Overview'], ['subscribers', 'Users'], ['messages', 'Contact Messages'], ['broadcast', 'Send Message']].map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                 tab === key ? 'border-indigo-500 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}>
               {label}
@@ -539,6 +730,7 @@ function DashboardShell({ onLock, password }) {
         {tab === 'overview' && <OverviewTab password={password} />}
         {tab === 'subscribers' && <SubscribersTab />}
         {tab === 'messages' && <MessagesTab />}
+        {tab === 'broadcast' && <BroadcastTab password={password} />}
       </div>
     </div>
   );

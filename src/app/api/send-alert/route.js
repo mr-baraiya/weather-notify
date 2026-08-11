@@ -1,4 +1,4 @@
-// This route is triggered by Vercel Cron at 6 AM IST daily
+// This route is triggered by GitHub Actions / Vercel Cron at 6 AM IST daily
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { getWeather } from '@/lib/weather';
@@ -16,47 +16,63 @@ export async function GET(request) {
     const subscribers = await Subscriber.find({});
 
     for (const subscriber of subscribers) {
-      const weatherData = await getWeather(subscriber.city);
-      const temp = weatherData.main.temp;
-      const weatherCondition = weatherData.weather[0].main;
+      try {
+        const weatherData = await getWeather(subscriber.city);
+        const temp = weatherData.main.temp;
+        const feelsLike = weatherData.main.feels_like;
+        const weatherCondition = weatherData.weather[0].main;
+        const description = weatherData.weather[0].description;
+        const humidity = weatherData.main.humidity;
+        const windSpeed = weatherData.wind.speed;
 
-      if (temp > 40) {
-        const message = [
-          `Hi ${subscriber.name},`,
-          '🔥 Heat Alert',
-          `Temperature: ${Math.round(temp)}°C (feels like ${Math.round(weatherData.main.feels_like)}°C)`,
-          `Condition: ${weatherData.weather[0].main} - ${weatherData.weather[0].description}`,
-          `Humidity: ${weatherData.main.humidity}% | Wind: ${weatherData.wind.speed} m/s`,
-          `City: ${subscriber.city}`,
-          `Stay hydrated and avoid direct sun during peak hours.`,
-        ].join('\n');
-        await sendWhatsAppMessage(subscriber.phone, message);
-      }
+        // Choose an emoji based on condition
+        let conditionEmoji = '🌤️';
+        if (weatherCondition === 'Rain' || weatherCondition === 'Drizzle') conditionEmoji = '🌧️';
+        else if (weatherCondition === 'Thunderstorm') conditionEmoji = '⛈️';
+        else if (weatherCondition === 'Snow') conditionEmoji = '❄️';
+        else if (weatherCondition === 'Clear') conditionEmoji = '☀️';
+        else if (weatherCondition === 'Clouds') conditionEmoji = '☁️';
+        else if (weatherCondition === 'Mist' || weatherCondition === 'Fog' || weatherCondition === 'Haze') conditionEmoji = '🌫️';
 
-      if (temp <= 10) {
-        const message = [
-          `Hi ${subscriber.name},`,
-          '❄️ Cold Alert',
-          `Temperature: ${Math.round(temp)}°C (feels like ${Math.round(weatherData.main.feels_like)}°C)`,
-          `Condition: ${weatherData.weather[0].main} - ${weatherData.weather[0].description}`,
-          `Humidity: ${weatherData.main.humidity}% | Wind: ${weatherData.wind.speed} m/s`,
-          `City: ${subscriber.city}`,
-          'Wear warm layers and limit exposure to cold winds.',
-        ].join('\n');
-        await sendWhatsAppMessage(subscriber.phone, message);
-      }
+        // Build the base daily weather update (always sent)
+        const lines = [
+          `🌅 Good Morning, ${subscriber.name}!`,
+          `Here's your daily weather update for *${subscriber.city}*:`,
+          ``,
+          `${conditionEmoji} *${weatherCondition}* — ${description}`,
+          `🌡️ Temperature: *${Math.round(temp)}°C* (feels like ${Math.round(feelsLike)}°C)`,
+          `💧 Humidity: ${humidity}%`,
+          `💨 Wind: ${windSpeed} m/s`,
+        ];
 
-      if (weatherCondition === 'Rain') {
-        const message = [
-          `Hi ${subscriber.name},`,
-          '🌧️ Rain Alert',
-          `Condition: ${weatherData.weather[0].main} - ${weatherData.weather[0].description}`,
-          `Temperature: ${Math.round(temp)}°C (feels like ${Math.round(weatherData.main.feels_like)}°C)`,
-          `Humidity: ${weatherData.main.humidity}% | Wind: ${weatherData.wind.speed} m/s`,
-          `City: ${subscriber.city}`,
-          'Carry an umbrella and drive safely.',
-        ].join('\n');
-        await sendWhatsAppMessage(subscriber.phone, message);
+        // Append extreme condition alerts as extra lines
+        if (temp > 40) {
+          lines.push('');
+          lines.push('🔥 *Heat Alert:* Stay hydrated and avoid direct sun during peak hours.');
+        }
+
+        if (temp <= 10) {
+          lines.push('');
+          lines.push('❄️ *Cold Alert:* Wear warm layers and limit exposure to cold winds.');
+        }
+
+        if (weatherCondition === 'Rain' || weatherCondition === 'Drizzle') {
+          lines.push('');
+          lines.push('🌧️ *Rain Alert:* Carry an umbrella and drive safely.');
+        }
+
+        if (weatherCondition === 'Thunderstorm') {
+          lines.push('');
+          lines.push('⛈️ *Storm Alert:* Stay indoors if possible and avoid open areas.');
+        }
+
+        lines.push('');
+        lines.push('_Reply WEATHER to get an update anytime._');
+
+        await sendWhatsAppMessage(subscriber.phone, lines.join('\n'));
+      } catch (subErr) {
+        // Log and continue — don't let one subscriber's failure stop others
+        console.error(`Error processing subscriber ${subscriber.phone}:`, subErr.message || subErr);
       }
     }
 
