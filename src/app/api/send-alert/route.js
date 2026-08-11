@@ -25,49 +25,42 @@ export async function GET(request) {
         const humidity = weatherData.main.humidity;
         const windSpeed = weatherData.wind.speed;
 
-        // Choose an emoji based on condition
-        let conditionEmoji = '🌤️';
-        if (weatherCondition === 'Rain' || weatherCondition === 'Drizzle') conditionEmoji = '🌧️';
-        else if (weatherCondition === 'Thunderstorm') conditionEmoji = '⛈️';
-        else if (weatherCondition === 'Snow') conditionEmoji = '❄️';
-        else if (weatherCondition === 'Clear') conditionEmoji = '☀️';
-        else if (weatherCondition === 'Clouds') conditionEmoji = '☁️';
-        else if (weatherCondition === 'Mist' || weatherCondition === 'Fog' || weatherCondition === 'Haze') conditionEmoji = '🌫️';
-
-        // Build the base daily weather update (always sent)
+        // Build the daily weather update (always sent, no emojis)
         const lines = [
-          `🌅 Good Morning, ${subscriber.name}!`,
-          `Here's your daily weather update for *${subscriber.city}*:`,
+          `Good Morning, ${subscriber.name}.`,
           ``,
-          `${conditionEmoji} *${weatherCondition}* — ${description}`,
-          `🌡️ Temperature: *${Math.round(temp)}°C* (feels like ${Math.round(feelsLike)}°C)`,
-          `💧 Humidity: ${humidity}%`,
-          `💨 Wind: ${windSpeed} m/s`,
+          `Daily Weather Report - ${subscriber.city}`,
+          `----------------------------------`,
+          `Condition    : ${weatherCondition} (${description})`,
+          `Temperature  : ${Math.round(temp)} C (feels like ${Math.round(feelsLike)} C)`,
+          `Humidity     : ${humidity}%`,
+          `Wind Speed   : ${windSpeed} m/s`,
+          `----------------------------------`,
         ];
 
-        // Append extreme condition alerts as extra lines
+        // Append plain-text alerts for extreme conditions
         if (temp > 40) {
           lines.push('');
-          lines.push('🔥 *Heat Alert:* Stay hydrated and avoid direct sun during peak hours.');
+          lines.push('HEAT ALERT: Temperatures are extremely high today. Stay hydrated and avoid direct sun during peak hours.');
         }
 
         if (temp <= 10) {
           lines.push('');
-          lines.push('❄️ *Cold Alert:* Wear warm layers and limit exposure to cold winds.');
+          lines.push('COLD ALERT: Temperatures are very low today. Wear warm layers and limit exposure to cold winds.');
         }
 
         if (weatherCondition === 'Rain' || weatherCondition === 'Drizzle') {
           lines.push('');
-          lines.push('🌧️ *Rain Alert:* Carry an umbrella and drive safely.');
+          lines.push('RAIN ALERT: Rainfall is expected today. Carry an umbrella and drive carefully.');
         }
 
         if (weatherCondition === 'Thunderstorm') {
           lines.push('');
-          lines.push('⛈️ *Storm Alert:* Stay indoors if possible and avoid open areas.');
+          lines.push('STORM ALERT: Thunderstorm conditions detected. Stay indoors if possible and avoid open areas.');
         }
 
         lines.push('');
-        lines.push('_Reply WEATHER to get an update anytime._');
+        lines.push('Reply WEATHER anytime to get an instant update.');
 
         await sendWhatsAppMessage(subscriber.phone, lines.join('\n'));
       } catch (subErr) {
