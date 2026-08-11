@@ -6,25 +6,48 @@ const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
 const client = twilio(accountSid, authToken);
 
+/**
+ * Format any phone number input into clean Twilio WhatsApp E.164 format
+ * e.g. "9876543210" -> "whatsapp:+919876543210"
+ * e.g. "+919876543210" -> "whatsapp:+919876543210"
+ * e.g. "whatsapp:+919876543210" -> "whatsapp:+919876543210"
+ */
+export const formatWhatsAppNumber = (phone) => {
+  if (!phone) return '';
+  let clean = phone.toString().replace(/^whatsapp:/i, '').trim();
+  if (!clean.startsWith('+')) {
+    // If 10 digits without country code, default to +91 (India)
+    if (clean.length === 10) {
+      clean = `+91${clean}`;
+    } else {
+      clean = `+${clean}`;
+    }
+  }
+  return `whatsapp:${clean}`;
+};
+
 export const sendWhatsAppMessage = async (to, body) => {
   try {
-    await client.messages.create({
+    const formattedTo = formatWhatsAppNumber(to);
+    const res = await client.messages.create({
       body: body,
       from: twilioWhatsAppNumber,
-      to: `whatsapp:${to}`,
+      to: formattedTo,
     });
-    console.log(`Message sent to ${to}`);
+    console.log(`WhatsApp message sent to ${formattedTo} (SID: ${res.sid})`);
+    return res;
   } catch (error) {
-    console.error(`Failed to send message to ${to}:`, error.message || error);
-    throw error; // re-throw so callers can detect and report the failure
+    console.error(`Failed to send WhatsApp message to ${to}:`, error.message || error);
+    throw error;
   }
 };
 
 export const sendWhatsAppMenu = async (to) => {
   try {
-    await client.messages.create({
+    const formattedTo = formatWhatsAppNumber(to);
+    const res = await client.messages.create({
       from: twilioWhatsAppNumber,
-      to: `whatsapp:${to}`,
+      to: formattedTo,
       interactive: {
         type: 'list',
         body: {
@@ -48,9 +71,10 @@ export const sendWhatsAppMenu = async (to) => {
         },
       },
     });
-    console.log(`Menu sent to ${to}`);
+    console.log(`WhatsApp menu sent to ${formattedTo} (SID: ${res.sid})`);
+    return res;
   } catch (error) {
-    console.error(`Failed to send menu to ${to}:`, error);
+    console.error(`Failed to send WhatsApp menu to ${to}:`, error.message || error);
     throw error;
   }
 };

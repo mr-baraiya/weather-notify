@@ -23,7 +23,7 @@ const WeatherMapComponent = dynamic(() => import('@/components/WeatherMapCompone
   ),
 });
 
-const POPULAR_CITIES = ['Rajkot', 'Mumbai', 'Ahmedabad', 'London', 'Tokyo', 'New York'];
+const POPULAR_CITIES = ['Rajkot', 'Mumbai', 'Ahmedabad', 'London', 'New York'];
 
 export default function WeatherMapPage() {
   const [weather, setWeather] = useState(null);
