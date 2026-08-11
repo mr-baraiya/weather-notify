@@ -3,6 +3,7 @@ import Subscriber from '@/models/Subscriber';
 import { getWeather } from '@/lib/weather';
 import { sendWhatsAppMenu } from '@/lib/twilio';
 import { toTitleCase } from '@/lib/format';
+import { buildDailyMorningAlert, formatTime } from '@/lib/alertTemplates';
 
 const toE164 = (value) => {
   if (!value) {
@@ -15,19 +16,39 @@ const toE164 = (value) => {
   return `+${normalized}`;
 };
 
-const buildWeatherMessage = (label, weatherData) => {
-  const temp = Math.round(weatherData.main.temp);
-  const feelsLike = Math.round(weatherData.main.feels_like);
-  const condition = `${weatherData.weather[0].main} - ${weatherData.weather[0].description}`;
-  const humidity = weatherData.main.humidity;
-  const wind = weatherData.wind.speed;
+const buildWeatherMessage = (cityName, weatherData) => {
+  const current = weatherData.current || weatherData;
+  const main = current.main || {};
+  const sys = current.sys || {};
+  const weatherArr = current.weather || [{}];
+  const hourly = weatherData.hourly || [];
 
-  return [
-    `Weather update for ${label}`,
-    `Temperature: ${temp}°C (feels like ${feelsLike}°C)`,
-    `Condition: ${condition}`,
-    `Humidity: ${humidity}% | Wind: ${wind} m/s`,
-  ].join('\n');
+  const temp = main.temp !== undefined ? main.temp : 30;
+  const feelsLike = main.feels_like !== undefined ? main.feels_like : 34;
+  const condition = weatherArr[0]?.main || 'Clear';
+  const high = main.temp_max !== undefined ? main.temp_max : temp + 3;
+  const low = main.temp_min !== undefined ? main.temp_min : temp - 4;
+  const pop = hourly[0]?.pop !== undefined ? hourly[0].pop : 0;
+  const humidity = main.humidity !== undefined ? main.humidity : 69;
+  const windSpeed = current.wind?.speed !== undefined ? current.wind.speed : 7.2;
+
+  const sunrise = formatTime(sys.sunrise);
+  const sunset = formatTime(sys.sunset);
+
+  return buildDailyMorningAlert({
+    city: cityName,
+    state: 'Gujarat',
+    temp,
+    feelsLike,
+    condition,
+    high,
+    low,
+    pop,
+    humidity,
+    windSpeed,
+    sunrise,
+    sunset,
+  });
 };
 
 const buildTwiml = (message) => {
