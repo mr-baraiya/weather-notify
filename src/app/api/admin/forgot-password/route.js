@@ -38,10 +38,11 @@ export async function POST(request) {
     admin.resetTokenExpires = expires;
     await admin.save();
 
-    // Determine domain from request headers
+    // Determine domain dynamically from request headers or environment variable
     const host = request.headers.get('host') || 'localhost:3000';
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const resetUrl = `${protocol}://${host}/reset-password?token=${token}`;
+    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') : `${protocol}://${host}`;
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     // Send email via nodemailer SMTP
     await sendPasswordResetEmail(admin.email, resetUrl);

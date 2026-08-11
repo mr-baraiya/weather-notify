@@ -536,21 +536,21 @@ function SubscribersTab({ token }) {
         {loading ? (
           <p className="text-sm text-gray-600 py-4">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-gray-600 py-4">No subscribers found.</p>
+          <p className="text-sm text-white/70 py-4">No subscribers found.</p>
         ) : rows.map(r => (
-          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2">
+          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{r.name}</p>
-                <p className="text-xs text-gray-500 truncate">{r.email}</p>
+                <p className="text-xs text-sky-100/90 truncate">{r.email}</p>
               </div>
-              <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0">{r.city}</span>
+              <span className="text-xs text-sky-200 bg-white/10 border border-white/15 px-2.5 py-0.5 rounded-full shrink-0 font-medium">{r.city}</span>
             </div>
-            <p className="text-xs text-gray-500">{r.phone}</p>
-            <div className="flex gap-3 pt-1 border-t border-white/5">
-              <button onClick={() => openView(r)} className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"><Eye size={12} />View</button>
-              <button onClick={() => openEdit(r)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"><Pencil size={12} />Edit</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-500 hover:text-red-400 transition-colors flex items-center gap-1 ml-auto"><Trash2 size={12} />Delete</button>
+            <p className="text-xs text-white/90 font-mono font-medium">{r.phone}</p>
+            <div className="flex gap-4 pt-2 border-t border-white/10">
+              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"><Eye size={13} />View</button>
+              <button onClick={() => openEdit(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors flex items-center gap-1.5 font-medium"><Pencil size={13} />Edit</button>
+              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 ml-auto font-medium"><Trash2 size={13} />Delete</button>
             </div>
           </div>
         ))}
@@ -728,20 +728,20 @@ function MessagesTab({ token }) {
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/70 py-4">No messages found.</p>
         ) : rows.map(r => (
-          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2">
+          <div key={r._id} style={cardStyle} className="rounded-xl p-4 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{r.name}</p>
-                <p className="text-xs text-white/70 truncate">{r.email}</p>
+                <p className="text-xs text-sky-100/90 truncate">{r.email}</p>
               </div>
-              <span className="text-xs text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0 text-right leading-5">{r.category}</span>
+              <span className="text-xs text-indigo-200 bg-white/10 border border-white/15 px-2.5 py-0.5 rounded-full shrink-0 text-right font-medium">{r.category}</span>
             </div>
             {r.message && (
-              <p className="text-xs text-white/80 line-clamp-2">{r.message}</p>
+              <p className="text-xs text-white/90 leading-relaxed line-clamp-2">{r.message}</p>
             )}
-            <div className="flex gap-3 pt-1 border-t border-white/5">
-              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1"><Eye size={12} />View</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 ml-auto"><Trash2 size={12} />Delete</button>
+            <div className="flex gap-4 pt-2 border-t border-white/10">
+              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"><Eye size={13} />View</button>
+              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 ml-auto font-medium"><Trash2 size={13} />Delete</button>
             </div>
           </div>
         ))}
