@@ -1,21 +1,16 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { sendWhatsAppMessage } from '@/lib/twilio';
-
-function authError() {
-  return new Response(
-    JSON.stringify({ success: false, message: 'Unauthorized' }),
-    { status: 401, headers: { 'Content-Type': 'application/json' } }
-  );
-}
+import { verifyAdminRequest, unauthorizedResponse } from '@/lib/auth';
 
 /**
  * POST /api/admin/broadcast
  * Body: { message: string, target: 'all' | 'specific', subscriberId?: string }
  */
 export async function POST(request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.ADMIN_PASSWORD}`) return authError();
+  // JWT auth check
+  try { verifyAdminRequest(request); }
+  catch { return unauthorizedResponse(); }
 
   try {
     const body = await request.json();

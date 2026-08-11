@@ -1,10 +1,20 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const Footer = () => {
+  const pathname = usePathname();
+
+  // Hide global footer on Admin Dashboard and Auth pages to avoid duplicate footers
+  if (['/dashboard', '/forgot-password', '/reset-password'].includes(pathname)) {
+    return null;
+  }
+
   return (
-    <footer className="w-full border-t border-white/10 bg-black/20 py-8 text-gray-400 text-sm mt-12">
+    <footer className="w-full border-t border-white/10 bg-black/20 py-8 text-sky-100/80 text-sm mt-12">
       <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-xs sm:text-sm text-gray-400">
+        <p className="text-xs sm:text-sm text-sky-100/80">
           &copy; {new Date().getFullYear()} Weather Notify. All rights reserved.
         </p>
         <div className="flex flex-wrap items-center gap-6 text-xs sm:text-sm">

@@ -6,10 +6,10 @@ const faqs = [
     question: 'What WhatsApp commands can I use?',
     answer: (
       <div className="space-y-4">
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="text-sm text-sky-100/90 leading-relaxed">
           Once connected, you can interact with the bot by sending the commands below exactly as shown.
         </p>
-        <div className="space-y-0 divide-y divide-white/5">
+        <div className="space-y-0 divide-y divide-white/10">
           {[
             { cmd: 'WEATHER', desc: 'Get weather for your saved city' },
             { cmd: 'WEATHER <city>', desc: 'Get weather for any specific city' },
@@ -20,16 +20,16 @@ const faqs = [
           ].map(({ cmd, desc }) => (
             <div key={cmd} className="flex items-start gap-4 py-3">
               <code
-                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
-                className="text-xs text-indigo-300 font-mono px-2 py-1 rounded shrink-0 mt-0.5 whitespace-nowrap"
+                style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.35)' }}
+                className="text-xs text-sky-200 font-mono px-2 py-1 rounded shrink-0 mt-0.5 break-all max-w-full"
               >
                 {cmd}
               </code>
-              <p className="text-sm text-gray-500">{desc}</p>
+              <p className="text-sm text-sky-100/90">{desc}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-700">
+        <p className="text-xs text-sky-200/80">
           If you send an unrecognised message, the bot will reply with a list of available commands.
         </p>
       </div>
@@ -39,26 +39,26 @@ const faqs = [
     question: 'How do I connect my WhatsApp manually?',
     answer: (
       <div className="space-y-3">
-        <p className="text-sm text-gray-500 leading-relaxed">
+        <p className="text-sm text-sky-100/90 leading-relaxed">
           If the QR code or direct link doesn't work, open WhatsApp and send this message manually:
         </p>
         <div className="space-y-2">
           <div
-            style={{ background: '#0a0f1e', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
             className="rounded-lg px-4 py-3"
           >
-            <p className="text-[10px] uppercase tracking-wider text-gray-600 mb-1">Send this message</p>
+            <p className="text-[10px] uppercase tracking-wider text-sky-200/80 mb-1">Send this message</p>
             <p className="font-mono text-sm text-emerald-400 font-semibold">join stand-exclaimed</p>
           </div>
           <div
-            style={{ background: '#0a0f1e', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
             className="rounded-lg px-4 py-3"
           >
-            <p className="text-[10px] uppercase tracking-wider text-gray-600 mb-1">To this number</p>
-            <p className="font-mono text-sm text-sky-400 font-semibold">+1 415 523 8886</p>
+            <p className="text-[10px] uppercase tracking-wider text-sky-200/80 mb-1">To this number</p>
+            <p className="font-mono text-sm text-sky-300 font-semibold">+1 415 523 8886</p>
           </div>
         </div>
-        <p className="text-xs text-gray-600">You'll get an automated confirmation reply once connected.</p>
+        <p className="text-xs text-sky-200/80">You'll get an automated confirmation reply once connected.</p>
       </div>
     ),
   },
@@ -92,16 +92,16 @@ export default function FAQPage() {
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
-        <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-5">FAQ</p>
+        <p className="text-xs text-sky-300 font-bold uppercase tracking-widest mb-5">FAQ</p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
           Frequently asked questions
         </h1>
-        <p className="text-sm text-gray-500 mb-12 leading-relaxed">
+        <p className="text-sm sm:text-base text-sky-100/90 mb-12 leading-relaxed">
           Everything you need to know about setting up and using Weather Notify on WhatsApp.
         </p>
 
         {/* Accordion — divider style, no cards */}
-        <div className="divide-y divide-white/6">
+        <div className="divide-y divide-white/10">
           {faqs.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
@@ -110,15 +110,15 @@ export default function FAQPage() {
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
                   className="w-full py-5 flex items-center justify-between gap-6 text-left focus:outline-none group"
                 >
-                  <span className={`text-sm font-medium transition-colors ${isOpen ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                  <span className={`text-base font-semibold transition-colors ${isOpen ? 'text-white' : 'text-sky-100/90 group-hover:text-white'}`}>
                     {faq.question}
                   </span>
-                  <span className={`shrink-0 text-lg leading-none text-gray-700 transition-transform duration-200 select-none ${isOpen ? 'rotate-45 text-gray-400' : ''}`}>
+                  <span className={`shrink-0 text-xl leading-none text-sky-300 transition-transform duration-200 select-none ${isOpen ? 'rotate-45 text-sky-200' : ''}`}>
                     +
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="pb-6 text-sm text-gray-500 leading-relaxed">
+                  <div className="pb-6 text-sm sm:text-base text-sky-100/85 leading-relaxed">
                     {typeof faq.answer === 'string' ? <p>{faq.answer}</p> : faq.answer}
                   </div>
                 )}

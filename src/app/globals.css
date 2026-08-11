@@ -1,23 +1,28 @@
 @import "tailwindcss";
 
 @keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,0.04) 25%,
-    rgba(255,255,255,0.08) 50%,
-    rgba(255,255,255,0.04) 75%
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.1) 75%
   );
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite linear;
 }
 
 :root {
-  --background: #090d16;
+  --background: #0f172a;
   --foreground: #ffffff;
 }
 
@@ -28,36 +33,43 @@ body {
   min-height: 100vh;
 }
 
+/* Weather theme gradient */
 .gradient-bg {
-  background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #090d16 80%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #38bdf8 100%);
   background-attachment: fixed;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 .glass-modal {
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
 }
 
-/* Fix browser autofill white background on inputs */
+/* Clearer placeholder text for inputs */
+::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+  opacity: 1 !important;
+}
+
+/* Fix browser autofill background on inputs to match light glass theme */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
-  box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #1e3b72 inset !important;
+  box-shadow: 0 0 0 1000px #1e3b72 inset !important;
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
   transition: background-color 9999s ease-in-out 0s;
 }

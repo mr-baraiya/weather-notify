@@ -1,13 +1,12 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import ContactMessage from '@/models/ContactMessage';
+import { verifyAdminRequest, unauthorizedResponse } from '@/lib/auth';
 
 export async function GET(request) {
-  // Simple auth check via header (matching how the frontend will call this)
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    return new Response(JSON.stringify({ success: false, message: 'Unauthorized' }), { status: 401 });
-  }
+  // JWT auth check
+  try { verifyAdminRequest(request); }
+  catch { return unauthorizedResponse(); }
 
   try {
     await connectToDatabase();

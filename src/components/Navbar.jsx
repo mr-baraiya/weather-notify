@@ -1,13 +1,20 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Sun, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Hide Navbar header on Admin pages to keep auth portal clean
+  if (['/dashboard', '/forgot-password', '/reset-password'].includes(pathname)) {
+    return null;
+  }
 
   return (
-    <header className="w-full z-10 relative">
+    <header className="w-full z-50 relative">
       <nav className="container mx-auto px-4 py-4 sm:py-6 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 text-xl sm:text-2xl font-bold z-20">
           <Sun className="text-yellow-400" />

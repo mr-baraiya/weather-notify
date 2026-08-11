@@ -169,56 +169,56 @@ const SubscribeForm = () => {
 
   return (
     <div className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between">
-      <h3 className="text-xl sm:text-2xl font-bold text-center mb-6">Subscribe for Alerts</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 text-white">Subscribe for Alerts</h3>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
             <input
               type="text"
               name="name"
               placeholder="Name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full bg-white/10 border ${formErrors.name ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.name ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
           </div>
-          {formErrors.name && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.name}</p>}
+          {formErrors.name && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.name}</p>}
         </div>
 
         <div>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
             <input
               type="email"
               name="email"
               placeholder="Email Address"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full bg-white/10 border ${formErrors.email ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.email ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
           </div>
-          {formErrors.email && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.email}</p>}
+          {formErrors.email && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.email}</p>}
         </div>
 
         <div>
           <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
             <input
               type="text"
               name="city"
               placeholder="City"
               value={formData.city}
               onChange={handleChange}
-              className={`w-full bg-white/10 border ${formErrors.city ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.city ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
           </div>
-          {formErrors.city && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.city}</p>}
+          {formErrors.city && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.city}</p>}
         </div>
 
         <div>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
             <input
               type="tel"
               name="phone"
@@ -229,17 +229,17 @@ const SubscribeForm = () => {
               inputMode="numeric"
               pattern="\d{10}"
               maxLength={10}
-              className={`w-full bg-white/10 border ${formErrors.phone ? 'border-red-400/50' : 'border-white/20'} rounded-xl py-3 pl-20 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.phone ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-20 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
-            <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+            <span className="absolute left-11 top-1/2 -translate-y-1/2 text-sm text-white/90 font-medium">
               {callingCode}
             </span>
           </div>
-          {formErrors.phone && <p className="text-xs text-red-300 mt-1.5 mr-2 text-left">{formErrors.phone}</p>}
+          {formErrors.phone && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.phone}</p>}
         </div>
 
         {locationError && (
-          <p className="text-xs text-gray-400 mt-1 text-right mr-2">{locationError}</p>
+          <p className="text-xs text-sky-200/80 mt-1 text-right mr-2">{locationError}</p>
         )}
         <button
           type="submit"

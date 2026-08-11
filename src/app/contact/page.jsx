@@ -25,7 +25,7 @@ const validate = (data) => {
 };
 
 const field =
-  'w-full rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none transition-colors';
+  'w-full rounded-lg px-3 py-2.5 text-sm text-white placeholder-sky-200/60 focus:outline-none transition-colors';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: '', email: '', category: '', message: '' });
@@ -63,8 +63,8 @@ export default function ContactPage() {
   };
 
   const inputStyle = (f) => ({
-    background: '#0f1629',
-    border: `1px solid ${fieldErrors[f] ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.07)'}`,
+    background: 'rgba(255, 255, 255, 0.15)',
+    border: `1px solid ${fieldErrors[f] ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.25)'}`,
   });
 
   /* ── Success ─────────────────────────────── */
@@ -74,12 +74,12 @@ export default function ContactPage() {
         <div className="max-w-sm w-full space-y-4">
           <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
           <h2 className="text-xl font-semibold">Message sent.</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">
+          <p className="text-sm text-sky-100/90 leading-relaxed">
             Thanks for reaching out. We'll get back to you as soon as possible.
           </p>
           <button
             onClick={() => setSubmitted(false)}
-            className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="text-sm text-sky-300 hover:text-white transition-colors"
           >
             Send another message →
           </button>
@@ -94,9 +94,9 @@ export default function ContactPage() {
       <div className="max-w-lg mx-auto">
 
         {/* Header */}
-        <p className="text-xs text-indigo-400 font-semibold uppercase tracking-widest mb-5">Contact</p>
+        <p className="text-xs text-sky-300 font-bold uppercase tracking-widest mb-5">Contact</p>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">Get in touch</h1>
-        <p className="text-sm text-gray-500 mb-10 leading-relaxed">
+        <p className="text-sm sm:text-base text-sky-100/90 mb-10 leading-relaxed">
           Have a question, found a bug, or want to share feedback? Fill out the form and we'll get back to you.
         </p>
 
@@ -105,7 +105,7 @@ export default function ContactPage() {
           {/* Name + Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs text-gray-600" htmlFor="name">Name</label>
+              <label className="text-xs font-medium text-sky-100/90" htmlFor="name">Name</label>
               <input
                 id="name" name="name" type="text" placeholder="Your name"
                 value={formData.name} onChange={handleChange}
@@ -114,7 +114,7 @@ export default function ContactPage() {
               {fieldErrors.name && <p className="text-xs text-red-400">{fieldErrors.name}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs text-gray-600" htmlFor="email">Email</label>
+              <label className="text-xs font-medium text-sky-100/90" htmlFor="email">Email</label>
               <input
                 id="email" name="email" type="email" placeholder="you@example.com"
                 value={formData.email} onChange={handleChange}
@@ -126,18 +126,18 @@ export default function ContactPage() {
 
           {/* Category */}
           <div className="space-y-1.5">
-            <label className="text-xs text-gray-600" htmlFor="category">Category</label>
+            <label className="text-xs font-medium text-sky-100/90" htmlFor="category">Category</label>
             <div className="relative">
               <select
                 id="category" name="category" value={formData.category} onChange={handleChange}
                 className={`${field} appearance-none pr-8 cursor-pointer`} style={inputStyle('category')}
               >
-                <option value="" disabled className="bg-[#0f1629] text-gray-600">Select a category…</option>
+                <option value="" disabled className="bg-[#1e3b72] text-sky-200/70">Select a category…</option>
                 {categories.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#0f1629] text-white">{cat}</option>
+                  <option key={cat} value={cat} className="bg-[#1e3b72] text-white py-1">{cat}</option>
                 ))}
               </select>
-              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+              <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-sky-200 pointer-events-none" />
             </div>
             {fieldErrors.category && <p className="text-xs text-red-400">{fieldErrors.category}</p>}
           </div>
@@ -145,8 +145,8 @@ export default function ContactPage() {
           {/* Message */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <label className="text-xs text-gray-600" htmlFor="message">Message</label>
-              <span className={`text-xs tabular-nums ${formData.message.length > 0 && formData.message.length < 10 ? 'text-red-400' : 'text-gray-700'}`}>
+              <label className="text-xs font-medium text-sky-100/90" htmlFor="message">Message</label>
+              <span className={`text-xs tabular-nums ${formData.message.length > 0 && formData.message.length < 10 ? 'text-red-400' : 'text-sky-200/80'}`}>
                 {formData.message.length} / 10 min
               </span>
             </div>
@@ -168,7 +168,7 @@ export default function ContactPage() {
 
           <button
             type="submit" disabled={loading}
-            className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors"
+            className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold py-3 transition-colors shadow-lg shadow-indigo-900/30"
           >
             {loading ? 'Sending…' : 'Send message'}
           </button>

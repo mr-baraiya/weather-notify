@@ -1,8 +1,10 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
+import { verifyAdminRequest, unauthorizedResponse } from '@/lib/auth';
 
 // GET /api/admin/subscribers?search=&city=&page=1&limit=10
 export async function GET(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const { searchParams } = new URL(request.url);
@@ -31,6 +33,7 @@ export async function GET(request) {
 
 // POST /api/admin/subscribers  — create
 export async function POST(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const body = await request.json();
@@ -46,6 +49,7 @@ export async function POST(request) {
 
 // PUT /api/admin/subscribers  — update by id
 export async function PUT(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const { id, name, city, phone } = await request.json();
@@ -60,6 +64,7 @@ export async function PUT(request) {
 
 // DELETE /api/admin/subscribers?id=
 export async function DELETE(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const { searchParams } = new URL(request.url);

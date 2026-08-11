@@ -1,8 +1,10 @@
 import connectToDatabase from '@/lib/mongodb';
 import ContactMessage from '@/models/ContactMessage';
+import { verifyAdminRequest, unauthorizedResponse } from '@/lib/auth';
 
 // GET /api/admin/messages?search=&category=&page=1&limit=10
 export async function GET(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const { searchParams } = new URL(request.url);
@@ -32,6 +34,7 @@ export async function GET(request) {
 
 // DELETE /api/admin/messages?id=
 export async function DELETE(request) {
+  try { verifyAdminRequest(request); } catch { return unauthorizedResponse(); }
   try {
     await connectToDatabase();
     const { searchParams } = new URL(request.url);

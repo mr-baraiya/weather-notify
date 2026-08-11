@@ -18,7 +18,7 @@ const WeatherCard = ({ weather }) => {
       {/* City & Description */}
       <div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">{current.name}</h2>
-        <p className="text-sm sm:text-base text-gray-400 capitalize mt-1">{description}</p>
+        <p className="text-sm sm:text-base text-sky-100/80 capitalize mt-1">{description}</p>
       </div>
 
       {/* Main Temperature & Weather Icon Side by Side */}
@@ -34,15 +34,15 @@ const WeatherCard = ({ weather }) => {
       {/* Bottom Metrics Bar */}
       <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-5 text-center mb-6">
         <div>
-          <p className="text-xs text-gray-400">Feels like</p>
+          <p className="text-xs text-sky-100/75">Feels like</p>
           <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{feelsLike}°C</p>
         </div>
         <div className="border-x border-white/10">
-          <p className="text-xs text-gray-400">Wind</p>
+          <p className="text-xs text-sky-100/75">Wind</p>
           <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{current.wind.speed} m/s</p>
         </div>
         <div>
-          <p className="text-xs text-gray-400">Humidity</p>
+          <p className="text-xs text-sky-100/75">Humidity</p>
           <p className="text-base sm:text-lg font-semibold text-white mt-0.5">{current.main.humidity}%</p>
         </div>
       </div>
@@ -52,12 +52,12 @@ const WeatherCard = ({ weather }) => {
         <div className="flex items-center justify-between gap-4 overflow-x-auto border-t border-white/10 pt-5 pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {forecast.map((day, idx) => (
             <div key={idx} className="flex flex-col items-center">
-              <p className="text-xs text-gray-400 mb-2">{day.day}</p>
+              <p className="text-xs text-sky-100/75 mb-2">{day.day}</p>
               <div className="text-white mb-2">
                 <WeatherIcon condition={day.condition} className="w-6 h-6" />
               </div>
               <p className="text-xs font-semibold text-white">
-                {day.max}° <span className="text-gray-500 font-normal">{day.min}°</span>
+                {day.max}° <span className="text-sky-200/60 font-normal">{day.min}°</span>
               </p>
             </div>
           ))}

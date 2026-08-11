@@ -76,11 +76,11 @@ const Hero = () => {
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4">
           Weather Notify
         </h1>
-        <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-10 sm:mb-12 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg md:text-xl text-sky-100/90 mb-10 sm:mb-12 max-w-2xl mx-auto">
           Get live weather updates and receive instant rain or heatwave alerts directly on your WhatsApp.
         </p>
         {locationStatus && (
-          <p className="text-sm text-gray-400 mb-8">{locationStatus}</p>
+          <p className="text-sm text-sky-200/80 mb-8">{locationStatus}</p>
         )}
 
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 lg:gap-28 items-stretch px-4">
