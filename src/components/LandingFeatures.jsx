@@ -21,13 +21,21 @@ const renderWeatherIcon = (condition, size = 20, className = 'text-sky-300') => 
   return <Sun size={size} className={className} />;
 };
 
-/* ─── UV Index Status Calculator ─────────────────────────────────────── */
+/* ─── UV Index Status & Recommendation Calculator ───────────────────── */
 const getUVStatus = (uv) => {
   if (uv <= 2) return `${uv} — Low`;
   if (uv <= 5) return `${uv} — Moderate`;
   if (uv <= 7) return `${uv} — High`;
   if (uv <= 10) return `${uv} — Very High`;
   return `${uv} — Extreme`;
+};
+
+const getUVRecommendation = (uv) => {
+  if (uv <= 2) return 'Low risk';
+  if (uv <= 5) return 'Sun protection needed';
+  if (uv <= 7) return 'Protection recommended';
+  if (uv <= 10) return 'Extra protection required';
+  return 'Avoid sun exposure';
 };
 
 export default function LandingFeatures({ weather, loading }) {
@@ -65,7 +73,7 @@ export default function LandingFeatures({ weather, loading }) {
             </div>
           </div>
 
-          <div className="p-5 sm:p-8 space-y-6">
+          <div className="p-5 sm:p-8 space-y-5">
             <div className="flex items-center justify-between gap-2">
               <div className="h-7 w-32 bg-white/10 rounded-lg"></div>
               <div className="h-6 w-28 bg-white/10 rounded-full"></div>
@@ -172,51 +180,51 @@ export default function LandingFeatures({ weather, loading }) {
               </span>
             </div>
 
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-medium text-left">
+            <p className="text-sm sm:text-base text-slate-100 leading-relaxed font-medium text-left">
               {summaryText}
             </p>
 
             {/* Metric Row */}
-            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm font-mono text-left">
+            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm text-left">
               <div>
-                <span className="text-slate-400 block text-[11px] sm:text-xs">Temp</span>
-                <span className="font-extrabold text-white text-base sm:text-lg">{temp}°C</span>
+                <span className="text-sky-200/90 block text-xs sm:text-sm font-medium">Temperature</span>
+                <span className="font-extrabold text-white text-base sm:text-xl font-mono">{temp}°C</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px] sm:text-xs">Feels</span>
-                <span className="font-extrabold text-white text-base sm:text-lg">{feelsLike}°C</span>
+                <span className="text-sky-200/90 block text-xs sm:text-sm font-medium">Feels Like</span>
+                <span className="font-extrabold text-white text-base sm:text-xl font-mono">{feelsLike}°C</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px] sm:text-xs">Humidity</span>
-                <span className="font-extrabold text-white text-base sm:text-lg">{humidity}%</span>
+                <span className="text-sky-200/90 block text-xs sm:text-sm font-medium">Humidity</span>
+                <span className="font-extrabold text-white text-base sm:text-xl font-mono">{humidity}%</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px] sm:text-xs">Wind</span>
-                <span className="font-extrabold text-white text-base sm:text-lg">{windSpeed} m/s</span>
+                <span className="text-sky-200/90 block text-xs sm:text-sm font-medium">Wind</span>
+                <span className="font-extrabold text-white text-base sm:text-xl font-mono">{windSpeed} m/s</span>
               </div>
             </div>
           </div>
 
-          {/* Atmospheric Telemetry */}
+          {/* Atmospheric Conditions */}
           <div className="pt-4 border-t border-white/10 space-y-3 text-left">
             <h3 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-200 via-sky-100 to-white bg-clip-text text-transparent text-left border-l-2 border-sky-400 pl-3 py-0.5">
-              Atmospheric Telemetry
+              Atmospheric Conditions
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">Pressure</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">Pressure</p>
                 <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">{pressure} hPa</p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">Visibility</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">Visibility</p>
                 <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">{visibility} km</p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">Cloudiness</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">Cloudiness</p>
                 <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">{clouds}%</p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">Precipitation</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">Precipitation</p>
                 <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">{hourlyList[0]?.pop || 0}%</p>
               </div>
             </div>
@@ -224,9 +232,9 @@ export default function LandingFeatures({ weather, loading }) {
         </div>
 
         {/* RIGHT COLUMN: AIR QUALITY & SUN / UV TELEMETRY */}
-        <div className="p-5 sm:p-8 space-y-6 flex flex-col justify-between">
+        <div className="p-5 sm:p-8 space-y-5 flex flex-col justify-between">
           {/* Air Quality */}
-          <div className="space-y-4 text-left">
+          <div className="space-y-3 text-left">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <h3 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-200 via-sky-100 to-white bg-clip-text text-transparent text-left border-l-2 border-sky-400 pl-3 py-0.5">
                 Air Quality
@@ -238,40 +246,51 @@ export default function LandingFeatures({ weather, loading }) {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center pt-1">
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">PM2.5</p>
-                <p className="font-extrabold text-white text-base sm:text-xl mt-0.5 font-mono">{airPollution.pm25}</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">PM2.5</p>
+                <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">
+                  {airPollution.pm25} <span className="text-xs text-sky-200 font-normal">µg/m³</span>
+                </p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">PM10</p>
-                <p className="font-extrabold text-white text-base sm:text-xl mt-0.5 font-mono">{airPollution.pm10}</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">PM10</p>
+                <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">
+                  {airPollution.pm10} <span className="text-xs text-sky-200 font-normal">µg/m³</span>
+                </p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">NO₂</p>
-                <p className="font-extrabold text-white text-base sm:text-xl mt-0.5 font-mono">{airPollution.no2}</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">NO₂</p>
+                <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">
+                  {airPollution.no2} <span className="text-xs text-sky-200 font-normal">µg/m³</span>
+                </p>
               </div>
               <div>
-                <p className="text-slate-400 font-mono text-[11px] sm:text-xs">O₃</p>
-                <p className="font-extrabold text-white text-base sm:text-xl mt-0.5 font-mono">{airPollution.o3}</p>
+                <p className="text-sky-200/90 font-sans text-xs sm:text-sm font-medium">O₃</p>
+                <p className="font-extrabold text-white text-base sm:text-lg mt-0.5 font-mono">
+                  {airPollution.o3} <span className="text-xs text-sky-200 font-normal">µg/m³</span>
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Sun & UV Telemetry */}
+          {/* Sun & UV */}
           <div className="pt-4 border-t border-white/10 space-y-3 text-left">
             <h3 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-200 via-sky-100 to-white bg-clip-text text-transparent text-left border-l-2 border-sky-400 pl-3 py-0.5">
-              Sun & UV Telemetry
+              Sun & UV
             </h3>
-            <div className="space-y-3 text-sm sm:text-base">
+            <div className="space-y-2.5 text-sm sm:text-base">
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-medium text-xs sm:text-sm">UV Index</span>
-                <span className="font-extrabold text-white font-mono text-xs sm:text-sm">{uvDisplay}</span>
+                <span className="text-slate-200 font-semibold text-xs sm:text-sm">UV Index</span>
+                <div className="text-right">
+                  <span className="font-extrabold text-white font-mono text-xs sm:text-sm block">{uvDisplay}</span>
+                  <span className="text-xs text-sky-300 font-medium block">{getUVRecommendation(uvValue)}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-medium text-xs sm:text-sm">Sunrise</span>
+                <span className="text-slate-200 font-semibold text-xs sm:text-sm">Sunrise</span>
                 <span className="font-extrabold text-white font-mono text-xs sm:text-sm">{sunriseTime}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-300 font-medium text-xs sm:text-sm">Sunset</span>
+                <span className="text-slate-200 font-semibold text-xs sm:text-sm">Sunset</span>
                 <span className="font-extrabold text-white font-mono text-xs sm:text-sm">{sunsetTime}</span>
               </div>
             </div>
@@ -296,12 +315,12 @@ export default function LandingFeatures({ weather, loading }) {
             { time: '11 AM', temp: temp + 1, condition: 'Clear', pop: 0 },
           ]).slice(0, 7).map((item, idx) => (
             <div key={idx} className="flex flex-col items-center min-w-[65px] sm:min-w-[70px] space-y-1.5 text-center flex-1 py-1 px-2 rounded-xl hover:bg-white/5 transition-all shrink-0 sm:shrink">
-              <span className="text-xs sm:text-sm font-mono text-slate-300 font-medium">{item.time}</span>
+              <span className="text-xs sm:text-sm font-mono text-slate-200 font-semibold">{item.time}</span>
               <div className="py-1">
                 {renderWeatherIcon(item.condition, 22)}
               </div>
               <span className="text-base sm:text-lg font-extrabold text-white font-mono">{item.temp}°C</span>
-              <span className="text-xs font-mono text-sky-300 font-semibold">{item.pop}%</span>
+              <span className="text-xs font-mono text-sky-300 font-semibold whitespace-nowrap">Rain {item.pop}%</span>
             </div>
           ))}
         </div>
