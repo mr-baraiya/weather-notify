@@ -52,6 +52,8 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
   // Accurate sunrise and sunset using city timezone offset
   const sunrise = formatTime(sys.sunrise, tzOffset);
   const sunset = formatTime(sys.sunset, tzOffset);
+  const conditionDesc = weatherArr[0]?.description || 'clear sky';
+  const visibilityKm = current.visibility ? (current.visibility / 1000).toFixed(1) : 10.0;
 
   // Manual command response without "Good Morning!" or "Have a great day!"
   return buildOnDemandWeatherAlert({
@@ -60,6 +62,7 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
     temp,
     feelsLike,
     condition,
+    conditionDesc,
     high,
     low,
     pop,
@@ -71,6 +74,7 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
     aqiStatus: airPollution?.status ?? null,
     pm25: airPollution?.pm25 ?? undefined,
     pm10: airPollution?.pm10 ?? undefined,
+    visibility: visibilityKm,
   });
 };
 

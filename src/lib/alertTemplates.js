@@ -50,12 +50,206 @@ export const getUVStatus = (uv) => {
   return `${uv} — Extreme`;
 };
 
+export function getWeatherTip(data) {
+  const {
+    temp,
+    condition = '',
+    conditionDesc = '',
+    pop = 0,
+    humidity = 50,
+    windSpeed = 0,
+    aqi = null,
+    visibility = 10,
+  } = data;
+
+  const condLower = condition.toLowerCase();
+  const descLower = conditionDesc.toLowerCase();
+  const visibilityNum = Number(visibility);
+
+  // 1. Severe weather (Storm warning)
+  const isStormWarning =
+    condLower === 'squall' ||
+    condLower === 'tornado' ||
+    ((descLower.includes('storm') || descLower.includes('severe')) &&
+     !condLower.includes('thunderstorm') &&
+     !descLower.includes('thunderstorm') &&
+     !descLower.includes('thunder'));
+
+  // 2. Thunderstorm
+  const isThunderstorm =
+    condLower.includes('thunderstorm') ||
+    descLower.includes('thunder');
+
+  // 3. Heavy rain
+  const isHeavyRain =
+    condLower === 'rain' &&
+    (descLower.includes('heavy') ||
+      descLower.includes('extreme') ||
+      descLower.includes('very heavy'));
+
+  // 4. Very high rain probability
+  const isVeryHighRainProb = pop >= 80;
+
+  // 5. Poor AQI
+  const isPoorAQI = aqi !== null && aqi >= 4;
+
+  // 6. Extreme temperature
+  const isExtremeTemp = temp >= 40 || temp < 10;
+
+  // 7. Strong wind
+  const isStrongWind = windSpeed >= 15;
+
+  // 8. Visibility / Fog
+  const isVeryLowVisibility = visibilityNum <= 1.0;
+  const isFog = condLower === 'fog' || descLower.includes('fog');
+
+  // 9. High humidity
+  const isHighHumidity = humidity >= 80;
+
+  // --- EVALUATING BY PRIORITY ---
+
+  // Priority 1: Severe Weather
+  if (isStormWarning) {
+    return "Tip: Severe weather is expected today, so avoid unnecessary outdoor travel and follow local safety advisories.";
+  }
+
+  // Priority 2: Thunderstorm
+  if (isThunderstorm) {
+    return "Tip: Thunderstorms are possible today, so avoid exposed outdoor areas during storms.";
+  }
+
+  // Priority 3: Heavy Rain
+  if (isHeavyRain) {
+    return "Tip: Heavy rain is expected today, so carry an umbrella and take care while traveling.";
+  }
+
+  // Priority 4: Very High Rain Probability (>= 80%)
+  if (isVeryHighRainProb) {
+    return "Tip: Rain is very likely today, so carry an umbrella if you're heading out.";
+  }
+
+  // Priority 5: Poor AQI (>= 4)
+  if (isPoorAQI) {
+    if (aqi >= 6) {
+      return "Tip: Air quality is unhealthy today, so avoid prolonged outdoor activity and consider wearing a mask outdoors.";
+    }
+    return "Tip: Air quality is poor today, so consider limiting prolonged outdoor activity.";
+  }
+
+  // Priority 6: Extreme Temperature (>= 40°C or < 10°C)
+  if (isExtremeTemp) {
+    if (temp >= 40) {
+      return "Tip: Extremely hot weather is expected today, so avoid prolonged outdoor activity and stay well hydrated.";
+    }
+    return "Tip: Cold weather is expected today, so dress warmly if you're going outdoors.";
+  }
+
+  // Priority 7: Strong Wind (>= 15 m/s)
+  if (isStrongWind) {
+    return "Tip: Strong winds are expected today, so take extra care when traveling or spending time outdoors.";
+  }
+
+  // Priority 8: Visibility / Fog
+  if (isVeryLowVisibility) {
+    return "Tip: Low visibility is expected today, so take extra care while driving or traveling.";
+  }
+  if (isFog) {
+    return "Tip: Foggy conditions are expected today, so drive carefully and maintain a safe distance.";
+  }
+
+  // Priority 9: High Humidity (>= 80%)
+  if (isHighHumidity) {
+    return "Tip: High humidity may make it feel warmer than the actual temperature, so stay hydrated.";
+  }
+
+  // --- Priority 10: Normal / Pleasant Weather ---
+
+  // Rain Probability (50-79%)
+  if (pop >= 50 && pop < 80) {
+    return "Tip: There is a good chance of rain today, so consider carrying an umbrella.";
+  }
+
+  // Rain Probability (30-49%)
+  if (pop >= 30 && pop < 50) {
+    return "Tip: There is a possibility of rain today, so keep an umbrella handy.";
+  }
+
+  // Rain (current conditions rain but pop < 30%)
+  if (condLower === 'rain' || descLower.includes('rain')) {
+    return "Tip: There is a possibility of rain today, so keep an umbrella handy.";
+  }
+
+  // Hot weather (35-39°C)
+  if (temp >= 35 && temp < 40) {
+    return "Tip: It will be a hot day, so stay hydrated and avoid prolonged exposure to the sun.";
+  }
+
+  // Cool weather (10-19°C)
+  if (temp >= 10 && temp <= 19) {
+    return "Tip: It will be a cool day, so consider carrying a light jacket when heading out.";
+  }
+
+  // Acceptable AQI (AQI 3)
+  if (aqi === 3) {
+    return "Tip: Air quality is acceptable today, though sensitive individuals may want to limit prolonged outdoor activity.";
+  }
+
+  // Windy (10-14.9 m/s)
+  if (windSpeed >= 10 && windSpeed < 15) {
+    return "Tip: It will be quite windy today, so be cautious when outdoors.";
+  }
+
+  // Warm weather (30-34°C)
+  if (temp >= 30 && temp < 35) {
+    return "Tip: It may feel warm today, so stay hydrated if you're spending time outdoors.";
+  }
+
+  // Humidity (60-79%)
+  if (humidity >= 60 && humidity < 80) {
+    return "Tip: Humidity is relatively high today, so stay hydrated when spending time outdoors.";
+  }
+
+  // Dry conditions (< 40%)
+  if (humidity < 40) {
+    return "Tip: Dry conditions are expected today, so remember to stay hydrated.";
+  }
+
+  // Wind (5-9.9 m/s)
+  if (windSpeed >= 5 && windSpeed < 10) {
+    return "Tip: Moderate winds are expected today, so outdoor conditions may feel breezy.";
+  }
+
+  // Clear & Pleasant Temperature (20-29°C)
+  if ((condLower === 'clear' || descLower.includes('clear')) && temp >= 20 && temp <= 29) {
+    return "Tip: Weather looks pleasant today, making it a great day for outdoor activities.";
+  }
+
+  // Comfort Temperature (20-29°C) but not clear
+  if (temp >= 20 && temp <= 29) {
+    return "Tip: Temperatures look comfortable today, making it a good day for outdoor activities.";
+  }
+
+  // Good AQI (1-2)
+  if (aqi === 1 || aqi === 2) {
+    return "Tip: Air quality is good today, so outdoor activities should be comfortable.";
+  }
+
+  // Comfortable humidity (40-59%)
+  if (humidity >= 40 && humidity < 60) {
+    return "Tip: Humidity levels are comfortable today for most outdoor activities.";
+  }
+
+  return "Tip: Weather looks pleasant today, making it a great day for outdoor activities.";
+}
+
 /* ─── WHATSAPP MESSAGE TEMPLATE BUILDERS ────────────────────────────────── */
 
 // 1. Daily Morning Weather Alert (Automated 6 AM IST Dispatch)
 export function buildDailyMorningAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus, pm25, pm10 } = data;
-  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}${pm25 !== undefined ? `\nPM2.5: ${pm25} µg/m³` : ''}${pm10 !== undefined ? ` | PM10: ${pm10} µg/m³` : ''}` : '';
+  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
+  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}` : '';
+  const tip = getWeatherTip(data);
+  const tipLine = tip ? `\n\n${tip}` : '';
   return `Good Morning!
 
 Weather Update for ${city}, ${state}
@@ -72,7 +266,7 @@ Humidity: ${humidity}%
 Wind: ${windSpeed} m/s${aqiLine}
 
 Sunrise: ${sunrise}
-Sunset: ${sunset}
+Sunset: ${sunset}${tipLine}
 
 Have a great day!
 — Weather Notify`;
@@ -80,8 +274,10 @@ Have a great day!
 
 // 1b. On-Demand Weather Response (Manual User Input Command)
 export function buildOnDemandWeatherAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus, pm25, pm10 } = data;
-  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}${pm25 !== undefined ? `\nPM2.5: ${pm25} µg/m³` : ''}${pm10 !== undefined ? ` | PM10: ${pm10} µg/m³` : ''}` : '';
+  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
+  const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}` : '';
+  const tip = getWeatherTip(data);
+  const tipLine = tip ? `\n\n${tip}` : '';
   return `Weather Update for ${city}, ${state}
 
 Temperature: ${Math.round(temp)}°C
@@ -96,7 +292,7 @@ Humidity: ${humidity}%
 Wind: ${windSpeed} m/s${aqiLine}
 
 Sunrise: ${sunrise}
-Sunset: ${sunset}
+Sunset: ${sunset}${tipLine}
 
 — Weather Notify`;
 }
@@ -367,6 +563,7 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
     temp,
     feelsLike,
     condition: conditionMain,
+    conditionDesc,
     high,
     low,
     minTemp: low,
