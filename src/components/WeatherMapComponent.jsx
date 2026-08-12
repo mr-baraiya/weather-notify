@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Maximize, Minimize, ChevronDown } from 'lucide-react';
 
 /* ─── Custom Leaflet Marker Icon ──────────────────────────────────────── */
 const createCustomMarkerIcon = (temp, city) => {
@@ -51,6 +52,18 @@ function ChangeMapView({ center, zoom }) {
       map.flyTo(center, zoom, { duration: 1.5 });
     }
   }, [center, zoom, map]);
+  return null;
+}
+
+/* ─── Map Viewport Invalidation Trigger on Fullscreen Toggle ──────────── */
+function MapResizeTrigger({ isFullscreen }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [isFullscreen, map]);
   return null;
 }
 
@@ -111,6 +124,7 @@ const LAYERS = [
 
 export default function WeatherMapComponent({ weather }) {
   const [activeLayer, setActiveLayer] = useState('radar');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // RainViewer radar overlay state
   const [rainViewerData, setRainViewerData] = useState(null);
@@ -132,6 +146,17 @@ export default function WeatherMapComponent({ weather }) {
   const centerPosition = [lat, lon];
   const activeLayerConfig = LAYERS.find((l) => l.id === activeLayer) || LAYERS[0];
   const markerIcon = createCustomMarkerIcon(temp, cityName);
+
+  // Exit fullscreen on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Keep ref of currentFrameIndex and mounted state to avoid stale closures
   const currentFrameIndexRef = useRef(currentFrameIndex);
@@ -250,21 +275,70 @@ export default function WeatherMapComponent({ weather }) {
   };
 
   return (
-    <div className="w-full space-y-6 text-left">
-
-      {/* Layer Selection Section */}
+    <div
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl p-4 sm:p-6 flex flex-col space-y-4 overflow-hidden text-left font-sans'
+          : 'w-full space-y-6 text-left'
+      }
+    >
+      {/* Layer Selection & Fullscreen Controls Header */}
       <div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold">
-            Select Weather Layer
-          </h2>
-          <span className="text-[11px] text-slate-300 font-mono">
-            Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
-          </span>
+        <div className="flex items-center justify-between gap-2.5 mb-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold">
+              Select Weather Layer
+            </h2>
+            <span className="text-[11px] text-slate-300 font-mono hidden sm:inline">
+              Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
+            </span>
+          </div>
+
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 transition-all shadow-sm cursor-pointer shrink-0"
+            title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Full Screen Mode'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize size={14} />
+                <span>Exit Fullscreen</span>
+              </>
+            ) : (
+              <>
+                <Maximize size={14} />
+                <span>Full Screen</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* 5 Layer Toggle Buttons */}
-        <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full overflow-x-auto pb-1">
+        {/* Mobile Dropdown (sm:hidden) */}
+        <div className="relative sm:hidden w-full mb-2">
+          <select
+            value={activeLayer}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              setActiveLayer(selectedId);
+              if (selectedId !== 'radar') {
+                setIsPlaying(false);
+              }
+            }}
+            className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900/90 border border-sky-500/40 text-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-md cursor-pointer appearance-none"
+          >
+            {LAYERS.map((layer) => (
+              <option key={layer.id} value={layer.id} className="bg-slate-900 text-white py-1">
+                {layer.name} ({layer.id === 'radar' ? 'Rain Radar' : layer.name})
+              </option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-sky-400">
+            <ChevronDown size={16} />
+          </div>
+        </div>
+
+        {/* Desktop Layer Toggle Buttons (hidden sm:flex) */}
+        <div className="hidden sm:flex items-center gap-3 w-full overflow-x-auto pb-1">
           {LAYERS.map((layer) => {
             const isActive = activeLayer === layer.id;
             return (
@@ -276,7 +350,7 @@ export default function WeatherMapComponent({ weather }) {
                     setIsPlaying(false);
                   }
                 }}
-                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap ${
+                className={`flex items-center justify-center px-4 py-2 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30 font-bold'
                     : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
@@ -290,7 +364,13 @@ export default function WeatherMapComponent({ weather }) {
       </div>
 
       {/* Main Map & Legend Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div
+        className={
+          isFullscreen
+            ? 'grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch flex-1 h-full min-h-0 overflow-hidden'
+            : 'grid grid-cols-1 lg:grid-cols-4 gap-6 items-start'
+        }
+      >
         {/* Main Map Container Frame */}
         <div
           style={{
@@ -299,7 +379,11 @@ export default function WeatherMapComponent({ weather }) {
             border: '1px solid rgba(255, 255, 255, 0.16)',
             boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
           }}
-          className="lg:col-span-3 rounded-2xl overflow-hidden relative w-full h-[420px] sm:h-[550px] lg:h-[620px] shadow-2xl"
+          className={
+            isFullscreen
+              ? 'lg:col-span-3 rounded-2xl overflow-hidden relative w-full h-full min-h-[400px] shadow-2xl'
+              : 'lg:col-span-3 rounded-2xl overflow-hidden relative w-full h-[420px] sm:h-[550px] lg:h-[620px] shadow-2xl'
+          }
         >
           <MapContainer
             center={centerPosition}
@@ -308,6 +392,7 @@ export default function WeatherMapComponent({ weather }) {
             style={{ width: '100%', height: '100%', background: '#0f172a' }}
           >
             <ChangeMapView center={centerPosition} zoom={8} />
+            <MapResizeTrigger isFullscreen={isFullscreen} />
 
             {/* CartoDB High-Contrast Dark Map Base Layer */}
             <TileLayer
@@ -368,7 +453,11 @@ export default function WeatherMapComponent({ weather }) {
             border: '1px solid rgba(255, 255, 255, 0.16)',
             boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
           }}
-          className="lg:col-span-1 p-5 rounded-2xl text-white space-y-4 text-xs w-full flex flex-col justify-start"
+          className={
+            isFullscreen
+              ? 'lg:col-span-1 p-5 rounded-2xl text-white space-y-4 text-xs w-full h-full overflow-y-auto flex flex-col justify-start'
+              : 'lg:col-span-1 p-5 rounded-2xl text-white space-y-4 text-xs w-full flex flex-col justify-start'
+          }
         >
           {activeLayer === 'radar' ? (
             <>
@@ -429,7 +518,7 @@ export default function WeatherMapComponent({ weather }) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsPlaying(true)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
                         isPlaying
                           ? 'bg-sky-500/20 border-sky-400/40 text-sky-300 font-bold shadow-sm'
                           : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
@@ -439,7 +528,7 @@ export default function WeatherMapComponent({ weather }) {
                     </button>
                     <button
                       onClick={() => setIsPlaying(false)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
                         !isPlaying
                           ? 'bg-sky-500/20 border-sky-400/40 text-sky-300 font-bold shadow-sm'
                           : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
