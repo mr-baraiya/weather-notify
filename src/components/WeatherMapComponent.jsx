@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Maximize, Minimize, ChevronDown } from 'lucide-react';
+import { Maximize, Minimize, ChevronDown, Play, Pause, Radio, Clock, SkipBack, SkipForward } from 'lucide-react';
 
 /* ─── Custom Leaflet Marker Icon ──────────────────────────────────────── */
 const createCustomMarkerIcon = (temp, city) => {
@@ -384,12 +384,13 @@ export default function WeatherMapComponent({ weather }) {
             center={centerPosition}
             zoom={8}
             scrollWheelZoom={true}
+            attributionControl={false}
             style={{ width: '100%', height: '100%', background: '#0f172a' }}
           >
             <ChangeMapView center={centerPosition} zoom={8} />
             <MapResizeTrigger isFullscreen={isFullscreen} />
 
-            {/* CartoDB High-Contrast Dark Map Base Layer */}
+            {/* CartoDB Map Base Layer */}
             <TileLayer
               attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -457,17 +458,26 @@ export default function WeatherMapComponent({ weather }) {
           {activeLayer === 'radar' ? (
             <>
               {/* RainViewer Control Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-2 gap-2">
-                <span className="font-semibold text-sky-300 text-sm">
-                  Rain Radar (Recent 2 Hours)
-                </span>
+              <div className="flex items-center justify-between border-b border-white/10 pb-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center justify-center">
+                    <Radio size={16} className="text-sky-400 animate-pulse" />
+                    <span className="absolute w-2 h-2 rounded-full bg-sky-400 animate-ping opacity-75" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-xs sm:text-sm tracking-wide">
+                      Rain Radar
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-mono">Past 2 Hours</p>
+                  </div>
+                </div>
                 {radarLoading && (
-                  <span className="text-[9px] text-sky-300 animate-pulse font-mono">
-                    Loading...
+                  <span className="text-[9px] text-sky-300 animate-pulse font-mono bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/40">
+                    Syncing...
                   </span>
                 )}
                 {radarError && (
-                  <span className="text-[9px] text-red-400 font-mono font-bold">
+                  <span className="text-[9px] text-red-400 font-mono font-bold bg-red-950/60 px-2 py-0.5 rounded border border-red-800/40">
                     Error
                   </span>
                 )}
@@ -480,12 +490,14 @@ export default function WeatherMapComponent({ weather }) {
               )}
 
               {rainViewerData && rainViewerData.radar?.past?.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Slider & Timeline Index */}
-                  <div className="space-y-2">
+                <div className="space-y-4 pt-1">
+                  {/* Timeline & Selected Frame Box */}
+                  <div className="space-y-3 bg-slate-900/80 p-3.5 rounded-xl border border-white/10 shadow-inner">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-300">Selected Frame:</span>
-                      <span className="font-bold text-sky-400 bg-sky-950/50 px-2 py-0.5 rounded border border-sky-800/30 font-mono">
+                      <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+                        <Clock size={13} className="text-sky-400 shrink-0" /> Frame Time
+                      </span>
+                      <span className="font-bold text-sky-300 bg-sky-950/90 px-2.5 py-1 rounded-md border border-sky-500/40 font-mono text-xs shadow-inner">
                         {formatRadarTime(rainViewerData.radar.past[currentFrameIndex].time)}
                       </span>
                     </div>
@@ -499,77 +511,78 @@ export default function WeatherMapComponent({ weather }) {
                         setIsPlaying(false);
                         setCurrentFrameIndex(Number(e.target.value));
                       }}
-                      className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none"
+                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400 focus:outline-none"
                     />
 
-                    <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                       <span>{formatRadarTime(rainViewerData.radar.past[0].time)}</span>
-                      <span>{formatRadarTime(rainViewerData.radar.past[Math.floor(rainViewerData.radar.past.length / 2)].time)}</span>
-                      <span>{formatRadarTime(rainViewerData.radar.past[rainViewerData.radar.past.length - 1].time)} (Latest)</span>
+                      <span className="text-sky-400 font-bold">● LIVE</span>
+                      <span>{formatRadarTime(rainViewerData.radar.past[rainViewerData.radar.past.length - 1].time)}</span>
                     </div>
                   </div>
 
-                  {/* Play & Pause Controls */}
-                  <div className="flex items-center gap-2">
+                  {/* Sleek Icon-Only Media Controls Bar (No Play/Pause text) */}
+                  <div className="bg-slate-900/80 p-2 rounded-2xl border border-white/10 flex items-center justify-center gap-3 shadow-lg">
+                    {/* Step Backward Button */}
                     <button
-                      onClick={() => setIsPlaying(true)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                      type="button"
+                      onClick={() => {
+                        setIsPlaying(false);
+                        setCurrentFrameIndex((prev) => (prev > 0 ? prev - 1 : rainViewerData.radar.past.length - 1));
+                      }}
+                      aria-label="Previous frame"
+                      title="Previous frame"
+                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer"
+                    >
+                      <SkipBack size={16} />
+                    </button>
+
+                    {/* Primary Play / Pause Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      aria-label={isPlaying ? 'Pause radar animation' : 'Play radar animation'}
+                      title={isPlaying ? 'Pause' : 'Play'}
+                      className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 cursor-pointer shadow-lg ${
                         isPlaying
-                          ? 'bg-sky-500/20 border-sky-400/40 text-sky-300 font-bold shadow-sm'
-                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-amber-500/10 hover:bg-amber-500/30'
+                          : 'bg-sky-500 text-slate-950 font-bold shadow-sky-500/30 hover:bg-sky-400 hover:scale-105'
                       }`}
                     >
-                      <span>▶ Play</span>
+                      {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current ml-0.5" />}
                     </button>
+
+                    {/* Step Forward Button */}
                     <button
-                      onClick={() => setIsPlaying(false)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
-                        !isPlaying
-                          ? 'bg-sky-500/20 border-sky-400/40 text-sky-300 font-bold shadow-sm'
-                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
-                      }`}
+                      type="button"
+                      onClick={() => {
+                        setIsPlaying(false);
+                        setCurrentFrameIndex((prev) => (prev < rainViewerData.radar.past.length - 1 ? prev + 1 : 0));
+                      }}
+                      aria-label="Next frame"
+                      title="Next frame"
+                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer"
                     >
-                      <span>⏸ Pause</span>
+                      <SkipForward size={16} />
                     </button>
                   </div>
 
-                  {/* Time sequence view */}
-                  <div className="flex justify-center items-center gap-1.5 text-[10px] text-slate-400 pt-1 font-mono border-t border-white/5 pt-2">
-                    {(() => {
-                      const len = rainViewerData.radar.past.length;
-                      const idx1 = 0;
-                      const idx2 = Math.floor(len / 2);
-                      const idx3 = len - 1;
+                  {/* Radar Intensity Scale Legend - Continuous Gradient Bar with clean labels */}
+                  <div className="pt-3 border-t border-white/10 space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-300 font-medium">Radar Intensity Scale</span>
+                      <span className="text-[10px] text-slate-400 font-mono">dBZ</span>
+                    </div>
 
-                      const active1 = currentFrameIndex === idx1 ? 'text-sky-300 font-bold underline decoration-sky-400 decoration-2' : '';
-                      const active2 = currentFrameIndex === idx2 ? 'text-sky-300 font-bold underline decoration-sky-400 decoration-2' : '';
-                      const active3 = currentFrameIndex === idx3 ? 'text-sky-300 font-bold underline decoration-sky-400 decoration-2' : '';
+                    {/* Multi-step Gradient Bar */}
+                    <div className="h-3 rounded-full w-full bg-gradient-to-r from-[#1049a7] via-[#2da835] via-1/2 via-[#ffb200] to-[#e60000] border border-white/20 shadow-inner" />
 
-                      return (
-                        <>
-                          <span className={active1}>{formatRadarTime(rainViewerData.radar.past[idx1].time)}</span>
-                          <span>←</span>
-                          <span className={active2}>{formatRadarTime(rainViewerData.radar.past[idx2].time)}</span>
-                          <span>←</span>
-                          <span className={active3}>{formatRadarTime(rainViewerData.radar.past[idx3].time)}</span>
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Radar Intensity Scale Legend */}
-                  <div className="pt-2 border-t border-white/10 space-y-2">
-                    <p className="text-[11px] text-slate-300 font-medium">Radar Intensity Scale</p>
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
-                      {activeLayerConfig.legend.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                          <span
-                            style={{ background: item.color }}
-                            className="w-3 h-3 rounded border border-white/30 shrink-0 shadow-sm"
-                          />
-                          <span className="text-slate-200 truncate">{item.label}</span>
-                        </div>
-                      ))}
+                    {/* Legend labels row with clear, non-truncated titles */}
+                    <div className="flex justify-between text-[10px] text-slate-300 font-medium px-0.5">
+                      <span className="text-[#38bdf8]">Light</span>
+                      <span className="text-[#4ade80]">Moderate</span>
+                      <span className="text-[#facc15]">Heavy</span>
+                      <span className="text-[#f87171]">Storm</span>
                     </div>
                   </div>
                 </div>
