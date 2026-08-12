@@ -1,22 +1,29 @@
 # Weather Notify
 
-A Next.js app that shows live weather data, lets users subscribe with their WhatsApp number, and sends daily weather alerts — automatically, every morning at 6 AM IST.
+A Next.js web application that displays live weather data, provides an interactive 5-layer weather map with real RainViewer Doppler radar animation, lets users subscribe with their WhatsApp number, and sends automated daily weather alerts.
 
 ![Weather Notify](public/README-screenshot.png)
 
 ---
 
-## Features
+## Key Features
 
-- **Live weather card** — auto-detects your location via geolocation, falls back to a default city
-- **WhatsApp subscription** — users enter name, city, and phone number; duplicate number detection built-in
-- **Daily alerts at 6 AM IST** — Vercel Cron triggers `/api/send-alert` every morning for all subscribers
-- **WhatsApp bot commands** — subscribers can send `WEATHER`, `UPDATE`, `STOP` and more
-- **Admin dashboard** — password-protected; manage subscribers (CRUD) and view contact messages
-- **Contact form** — with category dropdown, validation, saved to MongoDB
-- **FAQ page** — accordion with WhatsApp command reference
-- **Google Search Console** — site verification meta tag included
-- **Sitemap** — auto-generated at `/sitemap.xml`
+- **Live Weather Dashboard** — Auto-detects user location via geolocation with clear weather insights, air quality metrics (`µg/m³`), atmospheric conditions, and sun & UV recommendations.
+- **Interactive Weather Map & Live Radar** — 5 dedicated weather layers at `/weather-map`:
+  - **Radar** — Live Doppler precipitation radar from RainViewer with 1-second client-side animation, range slider scrubbing, local timezone frame timestamps, and 10-minute auto-refresh.
+  - **Precipitation** — Global rainfall intensity & forecast distribution from OpenWeather.
+  - **Temperature** — Thermal heat map overlay.
+  - **Clouds** — Satellite cloud cover density.
+  - **Wind Speed** — Surface wind velocity overlay.
+- **WhatsApp Subscription & Automated Alerts** — Users subscribe with their name, city, and WhatsApp number. Vercel Cron automatically dispatches daily weather alerts at 6 AM IST with prioritized weather advisory tips.
+- **WhatsApp Bot Commands** — Subscribers can text `WEATHER`, `WEATHER <city>`, `UPDATE`, or `STOP` directly to the WhatsApp bot.
+- **Dynamic State Resolution** — Resolves location state names dynamically via OpenWeather Geocoding API (e.g. `Bhopal, Madhya Pradesh`, `Rajkot, Gujarat`).
+- **Admin Dashboard** — Secured with JWT token authentication:
+  - **Subscribers Management** — Search, filter, add, edit, or delete subscribers.
+  - **Contact Messages & Email Reply** — View contact form submissions, reply via custom HTML emails (SMTP), and automatically deactivate answered messages (`Replied` badge).
+  - **Broadcast System** — Broadcast custom WhatsApp alerts to all subscribers or specific city subscribers.
+  - **Password Recovery** — Secure admin password reset workflow via email tokens.
+- **SEO & Performance** — Site verification meta tags, automated sitemap at `/sitemap.xml`, and dynamic metadata.
 
 ---
 
@@ -25,12 +32,15 @@ A Next.js app that shows live weather data, lets users subscribe with their What
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router) |
-| UI | React 19, Tailwind CSS 4 |
+| UI | React 19, Tailwind CSS 4, Lucide Icons |
+| Maps | Leaflet, React-Leaflet, CartoDB Voyager |
+| Radar & Weather APIs | RainViewer Weather API, OpenWeather Maps API |
 | Database | MongoDB (Mongoose) |
 | Messaging | Twilio WhatsApp API |
-| Weather | OpenWeather API |
-| HTTP | Axios |
-| Hosting | Vercel |
+| Email (SMTP) | Nodemailer |
+| Authentication | JWT (JSON Web Tokens) & Cookies |
+| HTTP Client | Axios |
+| Hosting & Cron | Vercel (Cron Schedule at 6 AM IST) |
 
 ---
 
@@ -39,20 +49,18 @@ A Next.js app that shows live weather data, lets users subscribe with their What
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/weather-notify.git
+git clone https://github.com/mr-baraiya/weather-notify.git
 cd weather-notify
 npm install
 ```
 
 ### 2. Set up environment variables
 
-Copy `.env.example` to `.env` and fill in your values:
+Copy `.env.example` to `.env` and fill in your keys:
 
 ```bash
 cp .env.example .env
 ```
-
-See [Environment Variables](#environment-variables) below for details on each key.
 
 ### 3. Run locally
 
@@ -72,27 +80,35 @@ Open [http://localhost:3000](http://localhost:3000).
 | `OPENWEATHER_API_KEY` | From [openweathermap.org](https://openweathermap.org/api) |
 | `TWILIO_ACCOUNT_SID` | From Twilio Console |
 | `TWILIO_AUTH_TOKEN` | From Twilio Console |
-| `TWILIO_WHATSAPP_NUMBER` | Your Twilio sandbox WhatsApp number (e.g. `whatsapp:+14155238886`) |
+| `TWILIO_WHATSAPP_NUMBER` | Your Twilio WhatsApp sandbox/production number (e.g. `whatsapp:+14155238886`) |
 | `TWILIO_WHATSAPP_JOIN_MESSAGE` | Sandbox join keyword (e.g. `join stand-exclaimed`) |
 | `TWILIO_WHATSAPP_SANDBOX_NUMBER` | Sandbox phone number shown to users (e.g. `+1 415 523 8886`) |
-| `ADMIN_WHATSAPP_NUMBER` | Your personal WhatsApp number for admin notifications |
-| `ADMIN_PASSWORD` | Password to access the admin dashboard at `/dashboard` |
-| `CRON_SECRET` | Secret key used to secure `/api/send-alert` from unauthorized triggers |
+| `ADMIN_WHATSAPP_NUMBER` | Personal WhatsApp number for admin notifications |
+| `CRON_SECRET` | Secret key securing automated `/api/send-alert` cron execution |
+| `JWT_SECRET` | Secret key for signing admin authentication tokens |
+| `SMTP_HOST` | SMTP server host (e.g. `smtp.gmail.com`) |
+| `SMTP_PORT` | SMTP server port (`587` for STARTTLS) |
+| `SMTP_USER` | SMTP username/email address |
+| `SMTP_PASS` | SMTP password or Google App Password |
+| `SMTP_FROM` | Sender email address for outgoing support responses |
+| `NEXT_PUBLIC_APP_URL` | Base URL of application (e.g. `http://localhost:3000` or production URL) |
 
 ---
 
 ## Admin Dashboard
 
-Visit `/dashboard` — enter your `ADMIN_PASSWORD` to unlock.
+Access `/dashboard` — sign in with your `ADMIN_PASSWORD`.
 
-- **Users tab** — view, create, edit, delete subscribers; search by name/phone; filter by city
-- **Contact Messages tab** — view and delete contact form submissions; filter by category
+- **Analytics Overview** — Total subscribers, active cities, contact messages, and message response rates.
+- **Subscribers Tab** — Full CRUD management for subscriber accounts with city filtering and search.
+- **Contact Messages Tab** — Interactive prompt modal to reply directly to user inquiries via email. Answered messages automatically display a green **Replied** badge and disable duplicate actions.
+- **Broadcast Tab** — Send instant WhatsApp alerts to targeted subscribers.
 
 ---
 
 ## Automated Daily Alerts (Vercel Cron)
 
-`vercel.json` schedules `/api/send-alert` at `00:30 UTC` = **6:00 AM IST** every day.
+Scheduled via `vercel.json` at `00:30 UTC` = **6:00 AM IST** daily:
 
 ```json
 {
@@ -102,36 +118,22 @@ Visit `/dashboard` — enter your `ADMIN_PASSWORD` to unlock.
 }
 ```
 
-The route is secured with `CRON_SECRET` — only Vercel's cron runner (which sends the secret as a Bearer token) can trigger it.
-
 ---
 
 ## WhatsApp Bot Commands
 
-Once connected, subscribers can message the bot:
-
 | Command | Action |
 |---|---|
-| `WEATHER` | Weather for your saved city |
-| `WEATHER <city>` | Weather for any city |
-| `UPDATE <name> \| <city>` | Update name and city |
-| `UPDATE NAME <name>` | Update name only |
-| `UPDATE CITY <city>` | Update city only |
-| `STOP` | Unsubscribe and stop all alerts |
-
----
-
-## Deployment (Vercel)
-
-1. Push your code to GitHub
-2. Import the repo in [vercel.com](https://vercel.com)
-3. Add all environment variables from `.env.example` in **Project Settings → Environment Variables**
-4. Deploy — Vercel cron activates automatically on the Pro plan
-
-> ⚠️ Vercel Cron Jobs require the **Pro plan** or higher.
+| `WEATHER` | Weather for subscriber's saved city |
+| `WEATHER <city>` | Weather for any specified city |
+| `UPDATE <name> \| <city>` | Update name and city together |
+| `UPDATE NAME <name>` | Update subscriber name |
+| `UPDATE CITY <city>` | Update subscriber city |
+| `STOP` | Unsubscribe and remove number |
 
 ---
 
 ## License
 
 MIT
+

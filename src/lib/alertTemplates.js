@@ -242,17 +242,24 @@ export function getWeatherTip(data) {
   return "Tip: Weather looks pleasant today, making it a great day for outdoor activities.";
 }
 
+const getLocationHeader = (city, state) => {
+  if (state && state.trim()) {
+    return `${city}, ${state.trim()}`;
+  }
+  return city;
+};
+
 /* ─── WHATSAPP MESSAGE TEMPLATE BUILDERS ────────────────────────────────── */
 
 // 1. Daily Morning Weather Alert (Automated 6 AM IST Dispatch)
 export function buildDailyMorningAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
+  const { city, state, temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
   const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}` : '';
   const tip = getWeatherTip(data);
   const tipLine = tip ? `\n\n${tip}` : '';
   return `Good Morning!
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Temperature: ${Math.round(temp)}°C
 Feels Like: ${Math.round(feelsLike)}°C
@@ -274,11 +281,11 @@ Have a great day!
 
 // 1b. On-Demand Weather Response (Manual User Input Command)
 export function buildOnDemandWeatherAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
+  const { city, state, temp, feelsLike, condition, high, low, pop, humidity, windSpeed, sunrise, sunset, aqi, aqiStatus } = data;
   const aqiLine = aqi ? `\nAir Quality: ${aqi} — ${aqiStatus || 'N/A'}` : '';
   const tip = getWeatherTip(data);
   const tipLine = tip ? `\n\n${tip}` : '';
-  return `Weather Update for ${city}, ${state}
+  return `Weather Update for ${getLocationHeader(city, state)}
 
 Temperature: ${Math.round(temp)}°C
 Feels Like: ${Math.round(feelsLike)}°C
@@ -299,10 +306,10 @@ Sunset: ${sunset}${tipLine}
 
 // 2. Rain Alert
 export function buildRainAlert(data) {
-  const { city, state = 'Gujarat', pop, expectedTime = '1:00 PM – 3:00 PM', temp } = data;
+  const { city, state, pop, expectedTime = '1:00 PM – 3:00 PM', temp } = data;
   return `RAIN ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Rain is likely in your area.
 
@@ -317,10 +324,10 @@ Please carry an umbrella and plan accordingly.
 
 // 3. Heat Alert
 export function buildHeatAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, humidity } = data;
+  const { city, state, temp, feelsLike, humidity } = data;
   return `HEAT ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 High temperatures are expected today.
 
@@ -335,10 +342,10 @@ Please stay hydrated and avoid prolonged outdoor activity during peak afternoon 
 
 // 4. Air Quality Alert
 export function buildAQIAlert(data) {
-  const { city, state = 'Gujarat', aqi, status, pm25, pm10 } = data;
+  const { city, state, aqi, status, pm25, pm10 } = data;
   return `AIR QUALITY ALERT
 
-Air Quality Update for ${city}, ${state}
+Air Quality Update for ${getLocationHeader(city, state)}
 
 Air quality has deteriorated.
 
@@ -353,10 +360,10 @@ Consider reducing prolonged outdoor activity and take appropriate precautions.
 
 // 5. Severe Weather Alert
 export function buildSevereWeatherAlert(data) {
-  const { city, state = 'Gujarat', rainfall = 35, windSpeed = 42, expectedTime = '2:00 PM – 5:00 PM' } = data;
+  const { city, state, rainfall = 35, windSpeed = 42, expectedTime = '2:00 PM – 5:00 PM' } = data;
   return `SEVERE WEATHER ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Heavy rainfall is expected in your area.
 
@@ -371,10 +378,10 @@ Please take appropriate precautions and avoid unnecessary travel if conditions b
 
 // 6. Thunderstorm Alert
 export function buildThunderstormAlert(data) {
-  const { city, state = 'Gujarat', expectedTime = '3:00 PM – 5:00 PM', temp, pop, windSpeed = 35 } = data;
+  const { city, state, expectedTime = '3:00 PM – 5:00 PM', temp, pop, windSpeed = 35 } = data;
   return `THUNDERSTORM ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Thunderstorms are expected in your area.
 
@@ -390,10 +397,10 @@ Avoid open areas and take appropriate precautions.
 
 // 7. Strong Wind Alert
 export function buildStrongWindAlert(data) {
-  const { city, state = 'Gujarat', windSpeed, windDir = 'NW', expectedTime = '4:00 PM – 7:00 PM' } = data;
+  const { city, state, windSpeed, windDir = 'NW', expectedTime = '4:00 PM – 7:00 PM' } = data;
   return `STRONG WIND ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Strong winds are expected in your area.
 
@@ -408,10 +415,10 @@ Secure loose outdoor objects and take appropriate precautions.
 
 // 8. Cold Weather Alert
 export function buildColdWeatherAlert(data) {
-  const { city, state = 'Gujarat', temp, feelsLike, minTemp } = data;
+  const { city, state, temp, feelsLike, minTemp } = data;
   return `COLD WEATHER ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Low temperatures are expected today.
 
@@ -426,10 +433,10 @@ Keep warm and take appropriate precautions, especially during the early morning 
 
 // 9. High UV Alert
 export function buildUVAlert(data) {
-  const { city, state = 'Gujarat', uvIndex, status = 'Very High', peakTime = '11:00 AM – 3:00 PM' } = data;
+  const { city, state, uvIndex, status = 'Very High', peakTime = '11:00 AM – 3:00 PM' } = data;
   return `HIGH UV ALERT
 
-Sun and UV Update for ${city}, ${state}
+Sun and UV Update for ${getLocationHeader(city, state)}
 
 UV levels are high today.
 
@@ -443,10 +450,10 @@ Use sun protection and avoid prolonged exposure during peak hours.
 
 // 10. Visibility Alert
 export function buildVisibilityAlert(data) {
-  const { city, state = 'Gujarat', visibility, condition = 'Foggy' } = data;
+  const { city, state, visibility, condition = 'Foggy' } = data;
   return `LOW VISIBILITY ALERT
 
-Weather Update for ${city}, ${state}
+Weather Update for ${getLocationHeader(city, state)}
 
 Visibility is currently low.
 
@@ -462,7 +469,7 @@ Drive carefully, maintain a safe distance, and use appropriate vehicle lights.
 export function buildDailyEveningAlert(data) {
   const {
     city,
-    state = 'Gujarat',
+    state,
     high,
     low,
     rainfall = 12,
@@ -479,7 +486,7 @@ export function buildDailyEveningAlert(data) {
 
   return `Good Evening!
 
-Weather Summary for ${city}, ${state}
+Weather Summary for ${getLocationHeader(city, state)}
 
 Today's High: ${Math.round(high)}°C
 Today's Low: ${Math.round(low)}°C
@@ -524,6 +531,7 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
   const tzOffset = current.timezone !== undefined ? current.timezone : 19800; // India IST default 19800 (+5:30)
 
   const city = current.name || subscriber.city || 'Rajkot';
+  const state = weatherData.state || sys.state || subscriber.state || '';
   const temp = main.temp !== undefined ? main.temp : 30;
   const feelsLike = main.feels_like !== undefined ? main.feels_like : 33;
   const humidity = main.humidity !== undefined ? main.humidity : 63;
@@ -559,7 +567,7 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
   // Payload context passed to builders
   const ctx = {
     city,
-    state: 'Gujarat',
+    state,
     temp,
     feelsLike,
     condition: conditionMain,

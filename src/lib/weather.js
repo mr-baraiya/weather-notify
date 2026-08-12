@@ -185,24 +185,45 @@ export const getAirPollution = async (lat, lon) => {
   }
 };
 
+export const getStateByCoords = async (lat, lon) => {
+  if (!lat || !lon || !API_KEY) return '';
+  try {
+    const response = await axios.get('http://api.openweathermap.org/geo/1.0/reverse', {
+      params: { lat, lon, limit: 1, appid: API_KEY },
+      timeout: 3000,
+    });
+    const match = response.data?.[0];
+    return match?.state || '';
+  } catch (error) {
+    return '';
+  }
+};
+
 /**
- * Unified Helper to fetch complete weather data bundle (Current, Forecast, Air Quality)
+ * Unified Helper to fetch complete weather data bundle (Current, Forecast, Air Quality, State)
  */
 export const getFullWeatherData = async (query) => {
   const current = await getWeather(query);
   const { lat, lon } = current.coord || {};
-  const [forecastData, airPollution] = await Promise.all([
+  const [forecastData, airPollution, geoState] = await Promise.all([
     getForecast(query),
     lat && lon ? getAirPollution(lat, lon) : Promise.resolve(null),
+    lat && lon ? getStateByCoords(lat, lon) : Promise.resolve(''),
   ]);
 
   const forecast = Array.isArray(forecastData) ? forecastData : forecastData.forecast || [];
   const hourly = forecastData.hourly || [];
+
+  if (geoState) {
+    current.sys = current.sys || {};
+    current.sys.state = geoState;
+  }
 
   return {
     current,
     forecast,
     hourly,
     airPollution,
+    state: geoState,
   };
 };

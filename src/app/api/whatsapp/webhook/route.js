@@ -55,10 +55,12 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
   const conditionDesc = weatherArr[0]?.description || 'clear sky';
   const visibilityKm = current.visibility ? (current.visibility / 1000).toFixed(1) : 10.0;
 
+  const state = weatherBundle?.state || current.sys?.state || '';
+
   // Manual command response without "Good Morning!" or "Have a great day!"
   return buildOnDemandWeatherAlert({
     city: current.name || cityName,
-    state: 'Gujarat',
+    state,
     temp,
     feelsLike,
     condition,

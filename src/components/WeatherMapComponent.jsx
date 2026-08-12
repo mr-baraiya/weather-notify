@@ -54,7 +54,7 @@ function ChangeMapView({ center, zoom }) {
   return null;
 }
 
-/* ─── Layer Definitions & Legends ─────────────────────────────────────── */
+/* ─── 5 Layer Definitions & Legends ─────────────────────────────────────── */
 const LAYERS = [
   {
     id: 'temp_new',
@@ -68,9 +68,20 @@ const LAYERS = [
     ],
   },
   {
+    id: 'radar',
+    name: 'Radar',
+    description: 'Live RainViewer Doppler precipitation radar (Recent 2 Hours).',
+    legend: [
+      { color: '#1049a7', label: 'Light Rain (Blue)' },
+      { color: '#2da835', label: 'Moderate Rain (Green)' },
+      { color: '#ffb200', label: 'Heavy Rain (Yellow/Orange)' },
+      { color: '#e60000', label: 'Extreme Storm (Red)' },
+    ],
+  },
+  {
     id: 'precipitation_new',
-    name: 'Rain / Precip',
-    description: 'Displays real-time rainfall & precipitation density across the map.',
+    name: 'Precipitation',
+    description: 'Global precipitation intensity & rainfall distribution forecast.',
     legend: [
       { color: '#8856a7', label: 'Light Drizzle (< 0.5 mm/h)' },
       { color: '#2b8cbe', label: 'Moderate Rain (1 - 5 mm/h)' },
@@ -99,7 +110,7 @@ const LAYERS = [
 ];
 
 export default function WeatherMapComponent({ weather }) {
-  const [activeLayer, setActiveLayer] = useState('temp_new');
+  const [activeLayer, setActiveLayer] = useState('radar');
 
   // RainViewer radar overlay state
   const [rainViewerData, setRainViewerData] = useState(null);
@@ -122,7 +133,7 @@ export default function WeatherMapComponent({ weather }) {
   const activeLayerConfig = LAYERS.find((l) => l.id === activeLayer) || LAYERS[0];
   const markerIcon = createCustomMarkerIcon(temp, cityName);
 
-  // Keep ref of currentFrameIndex and mounted state to avoid stale closures and leak warnings
+  // Keep ref of currentFrameIndex and mounted state to avoid stale closures
   const currentFrameIndexRef = useRef(currentFrameIndex);
   useEffect(() => {
     currentFrameIndexRef.current = currentFrameIndex;
@@ -214,12 +225,22 @@ export default function WeatherMapComponent({ weather }) {
 
   // Construct RainViewer overlay tile URL
   let rainViewerUrl = '';
+  let activeFrame = null;
   if (rainViewerData && rainViewerData.radar?.past?.length > 0) {
-    const activeFrame = rainViewerData.radar.past[currentFrameIndex];
-    if (activeFrame) {
+    activeFrame = rainViewerData.radar.past[currentFrameIndex] || rainViewerData.radar.past[rainViewerData.radar.past.length - 1];
+    if (activeFrame && activeFrame.path) {
       rainViewerUrl = `${rainViewerData.host}${activeFrame.path}/256/{z}/{x}/{y}/2/1_1.png`;
     }
   }
+
+  // Debug logging for RainViewer tile URL verification
+  useEffect(() => {
+    if (activeLayer === 'radar' && rainViewerData && activeFrame && rainViewerUrl) {
+      console.log('RainViewer metadata:', rainViewerData);
+      console.log('Selected radar frame:', activeFrame);
+      console.log('RainViewer tile URL:', rainViewerUrl);
+    }
+  }, [activeLayer, rainViewerData, activeFrame, rainViewerUrl]);
 
   // Format timestamp helper
   const formatRadarTime = (timestamp) => {
@@ -235,15 +256,15 @@ export default function WeatherMapComponent({ weather }) {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold">
-            Select Radar Overlay
+            Select Weather Layer
           </h2>
           <span className="text-[11px] text-slate-300 font-mono">
             Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
           </span>
         </div>
 
-        {/* 4 Layer Toggle Buttons Styled Like About Page */}
-        <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full">
+        {/* 5 Layer Toggle Buttons */}
+        <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full overflow-x-auto pb-1">
           {LAYERS.map((layer) => {
             const isActive = activeLayer === layer.id;
             return (
@@ -251,14 +272,15 @@ export default function WeatherMapComponent({ weather }) {
                 key={layer.id}
                 onClick={() => {
                   setActiveLayer(layer.id);
-                  if (layer.id !== 'precipitation_new') {
+                  if (layer.id !== 'radar') {
                     setIsPlaying(false);
                   }
                 }}
-                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors border ${isActive
+                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-xs font-semibold transition-all border whitespace-nowrap ${
+                  isActive
                     ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/30 font-bold'
                     : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
-                  }`}
+                }`}
               >
                 <span>{layer.name}</span>
               </button>
@@ -293,8 +315,8 @@ export default function WeatherMapComponent({ weather }) {
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
 
-            {/* OpenWeather Overlay Layer with High Contrast Z-Index */}
-            {activeLayer !== 'precipitation_new' && (
+            {/* OpenWeather Overlay Layer */}
+            {activeLayer !== 'radar' && (
               <TileLayer
                 key={activeLayer}
                 url={`/api/weather/tile?layer=${activeLayer}&z={z}&x={x}&y={y}`}
@@ -305,19 +327,21 @@ export default function WeatherMapComponent({ weather }) {
             )}
 
             {/* RainViewer Radar Overlay Layer */}
-            {activeLayer === 'precipitation_new' && rainViewerUrl && (
+            {activeLayer === 'radar' && rainViewerUrl && activeFrame && (
               <TileLayer
-                key={rainViewerUrl}
+                key={activeFrame.path || rainViewerUrl}
                 url={rainViewerUrl}
-                opacity={0.65}
-                maxZoom={7}
-                zIndex={10}
+                opacity={0.75}
+                maxNativeZoom={7}
+                maxZoom={18}
+                zIndex={1000}
+                tileSize={256}
                 attribution='Weather radar by <a href="https://www.rainviewer.com/api.html" target="_blank" rel="noreferrer">RainViewer</a>'
               />
             )}
 
             {/* City Weather Marker */}
-            <Marker position={centerPosition} icon={markerIcon}>
+            <Marker position={centerPosition} icon={markerIcon} zIndexOffset={1000}>
               <Popup className="weather-popup">
                 <div className="p-2 text-slate-900 space-y-1 font-sans">
                   <h4 className="font-bold text-sm border-b pb-1 text-slate-900">{cityName}</h4>
@@ -336,7 +360,7 @@ export default function WeatherMapComponent({ weather }) {
           </MapContainer>
         </div>
 
-        {/* Dynamic Legend Card Outside Overlay */}
+        {/* Dynamic Legend & Control Card */}
         <div
           style={{
             background: 'rgba(15, 23, 42, 0.9)',
@@ -344,14 +368,14 @@ export default function WeatherMapComponent({ weather }) {
             border: '1px solid rgba(255, 255, 255, 0.16)',
             boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
           }}
-          className="lg:col-span-1 p-5 rounded-2xl text-white space-y-3.5 text-xs w-full flex flex-col justify-start"
+          className="lg:col-span-1 p-5 rounded-2xl text-white space-y-4 text-xs w-full flex flex-col justify-start"
         >
-          {activeLayer === 'precipitation_new' ? (
+          {activeLayer === 'radar' ? (
             <>
               {/* RainViewer Control Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-2 gap-2">
                 <span className="font-semibold text-sky-300 text-sm">
-                  Rain Radar (Recent/Past Data)
+                  Rain Radar (Recent 2 Hours)
                 </span>
                 {radarLoading && (
                   <span className="text-[9px] text-sky-300 animate-pulse font-mono">
@@ -448,11 +472,27 @@ export default function WeatherMapComponent({ weather }) {
                       );
                     })()}
                   </div>
+
+                  {/* Radar Intensity Scale Legend */}
+                  <div className="pt-2 border-t border-white/10 space-y-2">
+                    <p className="text-[11px] text-slate-300 font-medium">Radar Intensity Scale</p>
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      {activeLayerConfig.legend.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5">
+                          <span
+                            style={{ background: item.color }}
+                            className="w-3 h-3 rounded border border-white/30 shrink-0 shadow-sm"
+                          />
+                          <span className="text-slate-200 truncate">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 !radarLoading && (
                   <div className="text-slate-400 text-xs py-4 text-center">
-                    No radar data available.
+                    No radar data available for this area.
                   </div>
                 )
               )}
