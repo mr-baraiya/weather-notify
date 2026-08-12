@@ -1,18 +1,42 @@
-name: Daily Weather Alert
+name: Weather Notify
 
 on:
   schedule:
-    - cron: '7 6 * * *'
-      timezone: 'Asia/Kolkata'
+    # 5:55 AM IST
+    - cron: "25 0 * * *"
+
+    # 6:00 AM IST
+    - cron: "30 0 * * *"
+
   workflow_dispatch:
 
 jobs:
-  send-alert:
+  wake-server:
+    if: github.event.schedule == '25 0 * * *'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger weather alert
+      - name: Wake up server
         run: |
-          curl -f \
+          echo "Waking Weather Notify server..."
+          curl --fail --max-time 120 \
+            https://weather-notify-tau.vercel.app/api/health
+
+      - name: Confirm server is awake
+        run: |
+          sleep 60
+          curl --fail --max-time 120 \
+            https://weather-notify-tau.vercel.app/api/health
+
+  send-alerts:
+    if: github.event.schedule == '30 0 * * *'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send weather alerts
+        run: |
+          echo "Sending weather alerts..."
+
+          curl --fail --max-time 120 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://weather-notify-tau.vercel.app/api/send-alert
+            https://weather-notify-tau.vercel.app/api/cron/weather-alert
