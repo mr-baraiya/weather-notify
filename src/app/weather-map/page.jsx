@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import axios from 'axios';
-import Link from 'next/link';
 
 /* ─── Dynamic Import for Client-Only Leaflet Component ──────────────── */
 const WeatherMapComponent = dynamic(() => import('@/components/WeatherMapComponent'), {
@@ -164,17 +163,6 @@ export default function WeatherMapPage() {
 
         {/* Main Interactive Weather Map Component */}
         <WeatherMapComponent weather={weather} />
-
-        {/* Divider */}
-        <div className="border-t border-white/10 mt-12 mb-10" />
-
-        {/* Bottom CTA */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
-          <p className="text-sm text-sky-100/90">Want automated WhatsApp alerts for your city?</p>
-          <Link href="/" className="text-sm font-semibold text-sky-300 hover:text-white transition-colors">
-            Subscribe for free →
-          </Link>
-        </div>
 
       </div>
     </div>

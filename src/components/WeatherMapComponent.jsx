@@ -123,7 +123,7 @@ const LAYERS = [
 ];
 
 export default function WeatherMapComponent({ weather }) {
-  const [activeLayer, setActiveLayer] = useState('radar');
+  const [activeLayer, setActiveLayer] = useState('temp_new');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // RainViewer radar overlay state
@@ -282,7 +282,7 @@ export default function WeatherMapComponent({ weather }) {
           : 'w-full space-y-6 text-left'
       }
     >
-      {/* Layer Selection & Fullscreen Controls Header */}
+      {/* Layer Selection Header */}
       <div>
         <div className="flex items-center justify-between gap-2.5 mb-3">
           <div className="flex items-center gap-3">
@@ -293,24 +293,6 @@ export default function WeatherMapComponent({ weather }) {
               Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
             </span>
           </div>
-
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 transition-all shadow-sm cursor-pointer shrink-0"
-            title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Full Screen Mode'}
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize size={14} />
-                <span>Exit Fullscreen</span>
-              </>
-            ) : (
-              <>
-                <Maximize size={14} />
-                <span>Full Screen</span>
-              </>
-            )}
-          </button>
         </div>
 
         {/* Mobile Dropdown (sm:hidden) */}
@@ -385,6 +367,19 @@ export default function WeatherMapComponent({ weather }) {
               : 'lg:col-span-3 rounded-2xl overflow-hidden relative w-full h-[420px] sm:h-[550px] lg:h-[620px] shadow-2xl'
           }
         >
+          {/* Floating Fullscreen Map Control Button */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="absolute top-3 right-3 z-[1000] flex items-center justify-center p-2.5 rounded-xl bg-slate-900/85 hover:bg-slate-900 text-sky-300 hover:text-white border border-sky-400/40 hover:border-sky-400 backdrop-blur-md shadow-xl transition-all cursor-pointer group"
+            title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Full Screen Mode'}
+            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Full Screen'}
+          >
+            {isFullscreen ? (
+              <Minimize size={18} className="group-hover:scale-110 transition-transform" />
+            ) : (
+              <Maximize size={18} className="group-hover:scale-110 transition-transform" />
+            )}
+          </button>
           <MapContainer
             center={centerPosition}
             zoom={8}
