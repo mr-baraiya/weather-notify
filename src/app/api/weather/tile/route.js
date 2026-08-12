@@ -6,9 +6,9 @@ const ALLOWED_LAYERS = {
   precipitation_new: 'precipitation_new',
   clouds: 'clouds_new',
   clouds_new: 'clouds_new',
-  temp: 'temp_new',
-  temperature: 'temp_new',
-  temp_new: 'temp_new',
+  temp: 'temperature_new',
+  temperature: 'temperature_new',
+  temp_new: 'temperature_new',
   wind: 'wind_new',
   wind_new: 'wind_new',
 };

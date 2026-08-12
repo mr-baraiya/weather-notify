@@ -23,6 +23,14 @@ const ContactMessageSchema = new mongoose.Schema({
     minlength: 10,
     maxlength: 2000,
   },
+  isReplied: {
+    type: Boolean,
+    default: false,
+  },
+  repliedAt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

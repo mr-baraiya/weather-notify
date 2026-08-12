@@ -649,6 +649,14 @@ function MessagesTab({ token }) {
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Email Reply Modal State
+  const [replyModal, setReplyModal] = useState(false);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [replyResult, setReplyResult] = useState(null);
+
   const limit = 8;
   const auth = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -667,6 +675,61 @@ function MessagesTab({ token }) {
   const openView = (r) => { setSelected(r); setModal('view'); };
   const openDelete = (r) => { setSelected(r); setModal('delete'); };
   const closeModal = () => { setModal(null); setSelected(null); };
+
+  const openReplyModal = (r) => {
+    setReplyTarget(r);
+    setReplyText('');
+    setReplyResult(null);
+    setReplyModal(true);
+  };
+  const closeReplyModal = () => {
+    setReplyModal(false);
+    setReplyTarget(null);
+    setReplyText('');
+    setReplyResult(null);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim()) {
+      setReplyResult({ success: false, message: 'Please enter a reply message.' });
+      return;
+    }
+    setSendingReply(true);
+    setReplyResult(null);
+    try {
+      const res = await axios.post(
+        '/api/admin/reply-message',
+        {
+          messageId: replyTarget._id,
+          toEmail: replyTarget.email,
+          name: replyTarget.name,
+          category: replyTarget.category,
+          originalMessage: replyTarget.message,
+          replyText: replyText.trim(),
+        },
+        auth
+      );
+
+      setReplyResult({
+        success: res.data?.success,
+        message: res.data?.message || 'Reply email sent successfully!',
+      });
+
+      if (res.data?.success) {
+        load();
+        setTimeout(() => {
+          closeReplyModal();
+        }, 1500);
+      }
+    } catch (e) {
+      setReplyResult({
+        success: false,
+        message: e.response?.data?.message || 'Failed to send reply email.',
+      });
+    } finally {
+      setSendingReply(false);
+    }
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -713,7 +776,12 @@ function MessagesTab({ token }) {
             <span className="text-sm text-white font-medium truncate pr-2">{r.name}</span>
             <span className="text-xs text-indigo-300 font-medium truncate pr-2">{r.category}</span>
             <span className="text-sm text-white/80 truncate pr-2">{r.email}</span>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-end items-center">
+              {r.isReplied ? (
+                <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Replied</span>
+              ) : (
+                <button onClick={() => openReplyModal(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors font-medium">Reply</button>
+              )}
               <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors">View</button>
               <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
             </div>
@@ -739,7 +807,12 @@ function MessagesTab({ token }) {
             {r.message && (
               <p className="text-xs text-white/90 leading-relaxed line-clamp-2">{r.message}</p>
             )}
-            <div className="flex gap-4 pt-2 border-t border-white/10">
+            <div className="flex gap-4 pt-2 border-t border-white/10 items-center">
+              {r.isReplied ? (
+                <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"><CheckCircle size={12} />Replied</span>
+              ) : (
+                <button onClick={() => openReplyModal(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors font-medium">Reply</button>
+              )}
               <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"><Eye size={13} />View</button>
               <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 ml-auto font-medium"><Trash2 size={13} />Delete</button>
             </div>
@@ -784,10 +857,30 @@ function MessagesTab({ token }) {
               <p className="text-sm text-gray-300 leading-relaxed">{selected.message}</p>
             </div>
           </div>
-          <button onClick={() => { closeModal(); openDelete(selected); }}
-            className="w-full rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 text-sm py-2.5 transition-colors">
-            Delete Message
-          </button>
+          <div className="flex gap-3 pt-2">
+            {selected.isReplied ? (
+              <button disabled className="flex-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-sm font-medium py-2.5 cursor-not-allowed">
+                ✓ Already Replied
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const msg = selected;
+                  closeModal();
+                  openReplyModal(msg);
+                }}
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 transition-colors"
+              >
+                Reply
+              </button>
+            )}
+            <button
+              onClick={() => { closeModal(); openDelete(selected); }}
+              className="flex-1 rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 text-sm py-2.5 transition-colors"
+            >
+              Delete Message
+            </button>
+          </div>
         </Modal>
       )}
 
@@ -804,12 +897,76 @@ function MessagesTab({ token }) {
           </div>
         </Modal>
       )}
+
+      {/* Email Reply Prompt Modal */}
+      {replyModal && replyTarget && (
+        <Modal title="Reply to Contact Message" onClose={closeReplyModal}>
+          <div className="space-y-3.5">
+            {/* Recipient Header Info */}
+            <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }} className="rounded-xl p-3 text-xs space-y-1">
+              <p className="text-sky-200"><span className="text-white/60">To:</span> <strong className="text-white font-medium">{replyTarget.name}</strong> ({replyTarget.email})</p>
+              <p className="text-sky-200"><span className="text-white/60">Category:</span> <strong className="text-indigo-300 font-medium">{replyTarget.category}</strong></p>
+            </div>
+
+            {/* Original Message Quote */}
+            {replyTarget.message && (
+              <div className="bg-black/20 border-l-2 border-indigo-400 p-2.5 rounded text-xs text-white/80 space-y-1">
+                <p className="text-[10px] text-white/50 uppercase font-semibold">Original Message:</p>
+                <p className="italic line-clamp-3">{replyTarget.message}</p>
+              </div>
+            )}
+
+            {/* Textarea for Reply Message */}
+            <div className="space-y-1">
+              <label className="text-xs text-sky-200 font-medium">Reply Message (Sent via Email)</label>
+              <textarea
+                value={replyText}
+                onChange={(e) => { setReplyText(e.target.value); setReplyResult(null); }}
+                placeholder="Type your reply message here…"
+                rows={5}
+                className={`${inputCls} resize-none leading-relaxed`}
+                style={inputStyle}
+                autoFocus
+              />
+            </div>
+
+            {/* Result banner */}
+            {replyResult && (
+              <div
+                style={{
+                  background: replyResult.success ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
+                  border: `1px solid ${replyResult.success ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                }}
+                className="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
+              >
+                <span className={replyResult.success ? 'text-emerald-300 font-medium' : 'text-red-300 font-medium'}>
+                  {replyResult.message}
+                </span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-1">
+              <button onClick={closeReplyModal} className="flex-1 rounded-lg border border-white/20 text-sm text-white/80 hover:text-white py-2.5 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleSendReply}
+                disabled={sendingReply || !replyText.trim()}
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 transition-colors shadow-md shadow-indigo-900/30"
+              >
+                {sendingReply ? 'Sending Email…' : 'Send Reply'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
 
 /* ─── Broadcast Tab ──────────────────────────────────────────── */
-function BroadcastTab({ token }) {
+function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage, initialTarget }) {
   const [target, setTarget] = useState('all');
   const [subscriberSearch, setSubscriberSearch] = useState('');
   const [subscribers, setSubscribers] = useState([]);
@@ -820,6 +977,16 @@ function BroadcastTab({ token }) {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (initialTarget) setTarget(initialTarget);
+    if (initialSelectedSub) {
+      setSelectedSub(initialSelectedSub);
+      setDropdownOpen(false);
+    }
+    if (initialSearch) { setSubscriberSearch(initialSearch); setDropdownOpen(true); }
+    if (initialMessage) setMessage(initialMessage);
+  }, [initialSelectedSub, initialSearch, initialMessage, initialTarget]);
 
   useEffect(() => {
     function handleClick(e) {
@@ -1179,6 +1346,35 @@ const TABS = [
 
 function DashboardShell({ onLock, token, username }) {
   const [tab, setTab] = useState('overview');
+  const [replySub, setReplySub] = useState(null);
+  const [replySearch, setReplySearch] = useState('');
+  const [replyMsg, setReplyMsg] = useState('');
+
+  const handleReplyToMessage = async (msg) => {
+    try {
+      const res = await axios.get(`/api/admin/subscribers?search=${encodeURIComponent(msg.email)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const foundSubs = res.data?.data?.subscribers || [];
+      const matched = foundSubs.find(s => s.email?.toLowerCase() === msg.email?.toLowerCase()) || foundSubs[0] || null;
+
+      if (matched) {
+        setReplySub(matched);
+        setReplySearch('');
+      } else {
+        setReplySub(null);
+        setReplySearch(msg.email || msg.name || '');
+      }
+
+      const nameToUse = matched ? '{name}' : msg.name;
+      setReplyMsg(`Hi ${nameToUse},\n\nRegarding your message about "${msg.category}":\n\n`);
+    } catch {
+      setReplySub(null);
+      setReplySearch(msg.email || msg.name || '');
+      setReplyMsg(`Hi ${msg.name},\n\nRegarding your message about "${msg.category}":\n\n`);
+    }
+    setTab('broadcast');
+  };
 
   return (
     <div className="min-h-screen py-8 sm:py-14 px-3 sm:px-4 text-white">
