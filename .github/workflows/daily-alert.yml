@@ -19,7 +19,7 @@ jobs:
         run: |
           echo "Waking Weather Notify server..."
 
-          curl --fail --max-time 120 \
+          curl --fail --retry 5 --retry-delay 3 --retry-all-errors --max-time 120 \
             https://weather-notify-tau.vercel.app/api/health
 
       - name: Wait for server
