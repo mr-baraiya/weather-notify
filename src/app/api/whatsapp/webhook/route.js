@@ -146,6 +146,26 @@ export async function POST(request) {
       });
     }
 
+    await connectToDatabase();
+
+    const subscriber = await Subscriber.findOne({ phone: from });
+    if (!subscriber) {
+      return new Response(buildTwiml('Number not subscribed. Please subscribe first on the website.\n\n' + helpMessage), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    if (subscriber.isActive === false) {
+      const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const contactUrl = `${baseUrl}/contact`;
+      const deactivationMessage = `Your subscription is currently deactivated. You cannot use Weather Notify WhatsApp services.\n\nPlease contact the administrator to reactivate your account:\n${contactUrl}`;
+      return new Response(buildTwiml(deactivationMessage), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
     if (!body) {
       try {
         await sendWhatsAppMenu(from);
@@ -159,16 +179,6 @@ export async function POST(request) {
           headers: { 'Content-Type': 'text/xml' },
         });
       }
-    }
-
-    await connectToDatabase();
-
-    const subscriber = await Subscriber.findOne({ phone: from });
-    if (!subscriber) {
-      return new Response(buildTwiml('Number not subscribed. Please subscribe first on the website.\n\n' + helpMessage), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
     }
 
     const upper = body.toUpperCase();
