@@ -2,10 +2,13 @@ name: Weather Notify
 
 on:
   schedule:
-    # 5:55 AM IST = 00:25 UTC
+    # 5:55 AM IST (Asia/Kolkata) = 00:25 UTC
     - cron: "25 0 * * *"
 
   workflow_dispatch:
+
+env:
+  TZ: "Asia/Kolkata"
 
 jobs:
   weather-alert:
