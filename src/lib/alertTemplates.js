@@ -633,7 +633,22 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
 
   // ─── AUTOMATED RULES WITH ANTI-SPAM COOLDOWN CHECKS ─────────────────
 
-  const currentHour = new Date().getHours();
+  // Get current hour in IST (Asia/Kolkata) timezone regardless of server location (e.g. Vercel UTC)
+  const getISTHour = () => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        hour12: false,
+      });
+      const hourStr = formatter.format(new Date());
+      return parseInt(hourStr, 10);
+    } catch {
+      return new Date().getHours();
+    }
+  };
+
+  const currentHour = getISTHour();
 
   // Rule 1: Daily Morning Weather Alert (Send once in morning 6 AM - 11 AM if cooldown passed)
   if (currentHour >= 6 && currentHour < 12) {
