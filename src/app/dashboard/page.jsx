@@ -1207,7 +1207,7 @@ function MessagesTab({ token }) {
 
 /* ─── Broadcast Tab ──────────────────────────────────────────── */
 function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage, initialTarget }) {
-  const [target, setTarget] = useState('all');
+  const [target, setTarget] = useState('all_active');
   const [subscriberSearch, setSubscriberSearch] = useState('');
   const [subscribers, setSubscribers] = useState([]);
   const [selectedSub, setSelectedSub] = useState(null);
@@ -1286,11 +1286,15 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
       <div style={cardStyle} className="rounded-xl p-4 sm:p-5 space-y-4 relative z-20">
         <p className="text-xs text-sky-200/90 uppercase tracking-widest font-semibold">Recipients</p>
         <div className="flex flex-row gap-2 sm:gap-3">
-          {[['all', 'All Subscribers'], ['specific', 'Specific Subscriber']].map(([val, label]) => (
+          {[
+            ['all_active', 'All Active'],
+            ['all_deactive', 'All Deactive'],
+            ['specific', 'Specific Subscriber']
+          ].map(([val, label]) => (
             <button
               key={val}
               onClick={() => { setTarget(val); setResult(null); }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all border ${target === val
+              className={`flex-1 py-2.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all border ${target === val
                   ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
                   : 'border-white/15 text-white/70 hover:text-white hover:bg-white/10'
                 }`}
@@ -1306,7 +1310,7 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
             <label className="text-xs text-sky-200">Search subscriber</label>
             <div className="relative">
               <input
-                value={selectedSub ? `${selectedSub.name} — ${selectedSub.phone}` : subscriberSearch}
+                value={selectedSub ? `${selectedSub.name} — ${selectedSub.phone}${selectedSub.isActive === false ? ' (Deactive)' : ''}` : subscriberSearch}
                 onChange={e => { setSubscriberSearch(e.target.value); setSelectedSub(null); setDropdownOpen(true); }}
                 onFocus={() => setDropdownOpen(true)}
                 placeholder="Search by name or phone…"
@@ -1333,19 +1337,43 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
                     <button
                       key={s._id}
                       onClick={() => { setSelectedSub(s); setDropdownOpen(false); setSubscriberSearch(''); }}
-                      className="w-full text-left px-4 py-3 text-sm text-white/90 hover:bg-indigo-600/30 border-b border-white/5 last:border-0 transition-colors flex justify-between items-center gap-2"
+                      className={`w-full text-left px-4 py-3 text-sm border-b border-white/5 last:border-0 transition-colors flex justify-between items-center gap-2 ${
+                        s.isActive === false
+                          ? 'bg-rose-950/20 hover:bg-rose-900/40 text-rose-100'
+                          : 'text-white/90 hover:bg-indigo-600/30'
+                      }`}
                     >
-                      <span className="font-medium text-white truncate">{s.name}</span>
-                      <span className="text-xs text-sky-300 font-mono shrink-0">{s.phone}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-white truncate">{s.name}</span>
+                        {s.isActive === false ? (
+                          <span className="text-[10px] uppercase font-bold text-rose-300 bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 rounded-full shrink-0">Deactive</span>
+                        ) : (
+                          <span className="text-[10px] uppercase font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0">Active</span>
+                        )}
+                      </div>
+                      <span className={`text-xs font-mono shrink-0 ${s.isActive === false ? 'text-rose-300/80' : 'text-sky-300'}`}>{s.phone}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
             {selectedSub && (
-              <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }} className="rounded-lg px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+              <div
+                style={{
+                  background: selectedSub.isActive === false ? 'rgba(244, 63, 94, 0.12)' : 'rgba(255,255,255,0.12)',
+                  border: selectedSub.isActive === false ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(255,255,255,0.2)',
+                }}
+                className="rounded-lg px-4 py-3 flex flex-wrap justify-between items-center gap-2"
+              >
                 <div className="min-w-0">
-                  <p className="text-sm text-white font-medium">{selectedSub.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-white font-medium">{selectedSub.name}</p>
+                    {selectedSub.isActive === false ? (
+                      <span className="text-[10px] uppercase font-bold text-rose-300 bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 rounded-full shrink-0">Deactive</span>
+                    ) : (
+                      <span className="text-[10px] uppercase font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full shrink-0">Active</span>
+                    )}
+                  </div>
                   <p className="text-xs text-sky-300 truncate">{selectedSub.email} · {selectedSub.phone}</p>
                 </div>
                 <span className="text-xs text-indigo-200 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0 font-medium">{selectedSub.city}</span>
@@ -1396,7 +1424,13 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium py-3 transition-all shadow-lg shadow-indigo-900/30"
       >
         <Send size={16} />
-        {sending ? 'Sending…' : target === 'all' ? 'Send to All Subscribers' : 'Send to Selected Subscriber'}
+        {sending
+          ? 'Sending…'
+          : target === 'all_deactive'
+          ? 'Send to All Deactive Subscribers'
+          : target === 'specific'
+          ? 'Send to Selected Subscriber'
+          : 'Send to All Active Subscribers'}
       </button>
     </div>
   );

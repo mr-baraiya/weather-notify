@@ -23,9 +23,10 @@ export async function POST(request) {
       );
     }
 
-    if (!target || !['all', 'specific'].includes(target)) {
+    const validTargets = ['all', 'all_active', 'all_deactive', 'specific'];
+    if (!target || !validTargets.includes(target)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'target must be "all" or "specific".' }),
+        JSON.stringify({ success: false, message: 'Invalid broadcast target.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -34,8 +35,10 @@ export async function POST(request) {
 
     let subscribers = [];
 
-    if (target === 'all') {
+    if (target === 'all' || target === 'all_active') {
       subscribers = await Subscriber.find({ isActive: { $ne: false } });
+    } else if (target === 'all_deactive') {
+      subscribers = await Subscriber.find({ isActive: false });
     } else {
       if (!subscriberId) {
         return new Response(
