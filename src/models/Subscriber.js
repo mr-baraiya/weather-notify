@@ -33,10 +33,27 @@ const SubscriberSchema = new mongoose.Schema({
   lastColdWeatherAlertSent: { type: Date, default: null },
   lastUVAlertSent: { type: Date, default: null },
   lastVisibilityAlertSent: { type: Date, default: null },
+  // Status & Audit Fields
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  createdBy: {
+    type: String,
+    default: 'User',
+  },
+  updatedBy: {
+    type: String,
+    default: 'User',
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
-});
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: true });
 
 export default mongoose.models.Subscriber || mongoose.model('Subscriber', SubscriberSchema);

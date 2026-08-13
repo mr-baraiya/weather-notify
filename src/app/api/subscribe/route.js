@@ -60,6 +60,9 @@ export async function POST(request) {
       city: toTitleCase(city),
       phone,
       email,
+      isActive: true,
+      createdBy: 'User',
+      updatedBy: 'User',
     });
     await newSubscriber.save();
 

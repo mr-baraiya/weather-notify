@@ -35,7 +35,7 @@ export async function POST(request) {
     let subscribers = [];
 
     if (target === 'all') {
-      subscribers = await Subscriber.find({});
+      subscribers = await Subscriber.find({ isActive: { $ne: false } });
     } else {
       if (!subscriberId) {
         return new Response(

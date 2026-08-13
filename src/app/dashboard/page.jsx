@@ -308,13 +308,52 @@ function OverviewTab({ token }) {
 
   if (loading) {
     return (
-      <div className="space-y-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Top Stats Skeleton */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {[1, 2].map(i => (
-            <div key={i} style={cardStyle} className="p-6 rounded-xl skeleton h-24" />
+            <div key={i} style={cardStyle} className="p-4 sm:p-6 rounded-xl flex items-center justify-between overflow-hidden">
+              <div className="space-y-2 w-1/2">
+                <div className="h-3 rounded-md skeleton w-3/4" />
+                <div className="h-8 rounded-md skeleton w-1/2" />
+              </div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full skeleton shrink-0" />
+            </div>
           ))}
         </div>
-        <div style={cardStyle} className="p-6 rounded-xl skeleton h-64" />
+
+        {/* Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Main Growth Chart Skeleton */}
+          <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4 lg:col-span-2 overflow-hidden">
+            <div className="h-4 rounded-md skeleton w-48" />
+            <div className="h-48 sm:h-64 rounded-xl skeleton w-full flex items-end p-4 gap-3">
+              {[40, 65, 30, 85, 50, 90, 45, 70, 60, 100, 75, 55, 80, 65].map((h, idx) => (
+                <div key={idx} className="flex-1 bg-white/10 rounded-t-md skeleton" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </div>
+
+          {/* Top Cities Skeleton */}
+          <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4 overflow-hidden">
+            <div className="h-4 rounded-md skeleton w-32" />
+            <div className="h-52 sm:h-64 rounded-xl skeleton w-full flex items-end p-4 gap-3">
+              {[60, 40, 85, 50, 70].map((h, idx) => (
+                <div key={idx} className="flex-1 bg-white/10 rounded-t-md skeleton" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </div>
+
+          {/* Message Categories Skeleton */}
+          <div style={cardStyle} className="p-4 sm:p-6 rounded-xl space-y-4 overflow-hidden">
+            <div className="h-4 rounded-md skeleton w-40" />
+            <div className="h-52 sm:h-64 rounded-xl skeleton w-full flex items-end p-4 gap-3">
+              {[50, 75, 45, 90, 60, 35].map((h, idx) => (
+                <div key={idx} className="flex-1 bg-white/10 rounded-t-md skeleton" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -429,10 +468,11 @@ function SubscribersTab({ token }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [cityFilter, setCityFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', city: '', phone: '', email: '' });
+  const [form, setForm] = useState({ name: '', city: '', phone: '', email: '', isActive: true });
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
   const limit = 8;
@@ -441,20 +481,29 @@ function SubscribersTab({ token }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const q = new URLSearchParams({ search, city: cityFilter, page, limit });
+      const q = new URLSearchParams({ search, city: cityFilter, status: statusFilter, page, limit });
       const res = await axios.get(`/api/admin/subscribers?${q}`, auth);
       if (res.data?.success) { setRows(res.data.data.subscribers); setTotal(res.data.data.total); }
     } catch { } finally { setLoading(false); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, cityFilter, page, token]);
+  }, [search, cityFilter, statusFilter, page, token]);
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => { setForm({ name: '', city: '', phone: '', email: '' }); setFormErr(''); setModal('create'); };
-  const openEdit = (r) => { setSelected(r); setForm({ name: r.name, city: r.city, phone: r.phone, email: r.email }); setFormErr(''); setModal('edit'); };
+  const openCreate = () => { setForm({ name: '', city: '', phone: '', email: '', isActive: true }); setFormErr(''); setModal('create'); };
+  const openEdit = (r) => { setSelected(r); setForm({ name: r.name, city: r.city, phone: r.phone, email: r.email, isActive: r.isActive !== false }); setFormErr(''); setModal('edit'); };
   const openView = (r) => { setSelected(r); setModal('view'); };
   const openDelete = (r) => { setSelected(r); setModal('delete'); };
   const closeModal = () => { setModal(null); setSelected(null); };
+
+  const toggleActive = async (r) => {
+    try {
+      await axios.put('/api/admin/subscribers', { id: r._id, isActive: r.isActive === false }, auth);
+      load();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to update subscriber status.');
+    }
+  };
 
   const handleSave = async () => {
     if (!form.name || !form.city || !form.phone || !form.email) { setFormErr('All fields are required.'); return; }
@@ -484,7 +533,7 @@ function SubscribersTab({ token }) {
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <input
-          placeholder="Search name or phone…"
+          placeholder="Search name, phone or email…"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
           className={`${inputCls} flex-1`}
@@ -495,9 +544,19 @@ function SubscribersTab({ token }) {
             placeholder="City…"
             value={cityFilter}
             onChange={e => { setCityFilter(e.target.value); setPage(1); }}
-            className={`${inputCls} flex-1 sm:w-36`}
+            className={`${inputCls} w-28 sm:w-32`}
             style={inputStyle}
           />
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            className={`${inputCls} w-32`}
+            style={inputStyle}
+          >
+            <option value="" style={{ background: '#1e3b72', color: '#ffffff' }}>All Status</option>
+            <option value="active" style={{ background: '#1e3b72', color: '#ffffff' }}>Active</option>
+            <option value="inactive" style={{ background: '#1e3b72', color: '#ffffff' }}>Deactive</option>
+          </select>
           <button
             onClick={openCreate}
             className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 transition-colors whitespace-nowrap shrink-0"
@@ -509,23 +568,74 @@ function SubscribersTab({ token }) {
 
       {/* Desktop Table – hidden on mobile */}
       <div style={cardStyle} className="rounded-xl overflow-hidden hidden sm:block">
-        <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] text-xs text-sky-200/90 font-semibold uppercase tracking-wider px-4 py-2.5 border-b border-white/10">
-          <span>Name</span><span>Email</span><span>City</span><span>Phone</span><span className="text-right">Actions</span>
+        <div className="grid grid-cols-[1fr_1.3fr_1fr_1.1fr_0.8fr_auto] text-xs text-sky-200/90 font-semibold uppercase tracking-wider px-4 py-2.5 border-b border-white/10">
+          <span>Name</span><span>Email</span><span>City</span><span>Phone</span><span>Status</span><span className="text-right">Actions</span>
         </div>
         {loading ? (
-          <p className="text-sm text-white/70 px-4 py-6">Loading…</p>
+          <div className="divide-y divide-white/5">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="grid grid-cols-[1fr_1.3fr_1fr_1.1fr_0.8fr_auto] items-center px-4 py-3.5">
+                <div className="h-4 bg-white/10 rounded-md skeleton w-3/4" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-4/5" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-2/3" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-3/4" />
+                <div className="h-5 bg-white/10 rounded-full skeleton w-9" />
+                <div className="flex gap-2 justify-end">
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/70 px-4 py-6">No subscribers found.</p>
         ) : rows.map(r => (
-          <div key={r._id} className="grid grid-cols-[1fr_1.5fr_1fr_1fr_auto] items-center px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors">
+          <div key={r._id} className="grid grid-cols-[1fr_1.3fr_1fr_1.1fr_0.8fr_auto] items-center px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors">
             <span className="text-sm text-white font-medium truncate pr-2">{r.name}</span>
             <span className="text-sm text-white/80 truncate pr-2">{r.email}</span>
             <span className="text-sm text-white/80 truncate pr-2">{r.city}</span>
             <span className="text-sm text-white/80 truncate pr-2">{r.phone}</span>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => openView(r)} className="text-xs text-white/75 hover:text-white transition-colors">View</button>
-              <button onClick={() => openEdit(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors">Edit</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
+            <div className="flex items-center justify-start">
+              <button
+                type="button"
+                onClick={() => toggleActive(r)}
+                title={r.isActive !== false ? 'Active (click to deactivate)' : 'Deactive (click to activate)'}
+                className="inline-flex items-center cursor-pointer focus:outline-none select-none group"
+              >
+                <span className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 border ${
+                  r.isActive !== false
+                    ? 'bg-emerald-500/30 border-emerald-400/50 group-hover:bg-emerald-500/40'
+                    : 'bg-slate-700/60 border-slate-500/40 group-hover:bg-slate-700/80'
+                }`}>
+                  <span className={`w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-200 ${
+                    r.isActive !== false ? 'translate-x-4 bg-emerald-400' : 'translate-x-0 bg-slate-400'
+                  }`} />
+                </span>
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 justify-end">
+              <button
+                onClick={() => openView(r)}
+                title="View Details"
+                className="p-1.5 rounded-lg text-sky-200 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Eye size={16} />
+              </button>
+              <button
+                onClick={() => openEdit(r)}
+                title="Edit Subscriber"
+                className="p-1.5 rounded-lg text-indigo-300 hover:text-indigo-200 hover:bg-white/10 transition-colors"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={() => openDelete(r)}
+                title="Delete Subscriber"
+                className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}
@@ -534,7 +644,11 @@ function SubscribersTab({ token }) {
       {/* Mobile Card List – shown only on mobile */}
       <div className="sm:hidden space-y-2">
         {loading ? (
-          <p className="text-sm text-gray-600 py-4">Loading…</p>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={cardStyle} className="p-4 rounded-xl skeleton h-28" />
+            ))}
+          </div>
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/70 py-4">No subscribers found.</p>
         ) : rows.map(r => (
@@ -547,10 +661,44 @@ function SubscribersTab({ token }) {
               <span className="text-xs text-sky-200 bg-white/10 border border-white/15 px-2.5 py-0.5 rounded-full shrink-0 font-medium">{r.city}</span>
             </div>
             <p className="text-xs text-white/90 font-mono font-medium">{r.phone}</p>
-            <div className="flex gap-4 pt-2 border-t border-white/10">
-              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"><Eye size={13} />View</button>
-              <button onClick={() => openEdit(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors flex items-center gap-1.5 font-medium"><Pencil size={13} />Edit</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 ml-auto font-medium"><Trash2 size={13} />Delete</button>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => toggleActive(r)}
+                title={r.isActive !== false ? 'Active (click to deactivate)' : 'Deactive (click to activate)'}
+                className="inline-flex items-center cursor-pointer focus:outline-none"
+              >
+                <span className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors duration-200 border ${
+                  r.isActive !== false ? 'bg-emerald-500/30 border-emerald-400/50' : 'bg-slate-700/60 border-slate-500/40'
+                }`}>
+                  <span className={`w-3 h-3 rounded-full shadow-md transform transition-transform duration-200 ${
+                    r.isActive !== false ? 'translate-x-3.5 bg-emerald-400' : 'translate-x-0 bg-slate-400'
+                  }`} />
+                </span>
+              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => openView(r)}
+                  title="View Details"
+                  className="p-1.5 rounded-lg text-sky-200 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Eye size={16} />
+                </button>
+                <button
+                  onClick={() => openEdit(r)}
+                  title="Edit Subscriber"
+                  className="p-1.5 rounded-lg text-indigo-300 hover:text-indigo-200 hover:bg-white/10 transition-colors"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => openDelete(r)}
+                  title="Delete Subscriber"
+                  className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -590,6 +738,25 @@ function SubscribersTab({ token }) {
                   className={inputCls} style={inputStyle} />
               </div>
             ))}
+            
+            <div className="flex items-center justify-between pt-1">
+              <label className="text-xs text-sky-200 font-semibold uppercase tracking-wider">Status</label>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
+                title={form.isActive ? 'Active (click to deactivate)' : 'Deactive (click to activate)'}
+                className="inline-flex items-center cursor-pointer focus:outline-none select-none"
+              >
+                <span className={`w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 border ${
+                  form.isActive ? 'bg-emerald-500/30 border-emerald-400/50' : 'bg-slate-700/60 border-slate-500/40'
+                }`}>
+                  <span className={`w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                    form.isActive ? 'translate-x-4.5 bg-emerald-400' : 'translate-x-0 bg-slate-400'
+                  }`} />
+                </span>
+              </button>
+            </div>
+
             {formErr && <p className="text-xs text-red-400">{formErr}</p>}
             <div className="flex gap-3 pt-1">
               <button onClick={closeModal} className="flex-1 rounded-lg border border-white/20 text-sm text-white/90 hover:text-white py-2.5 transition-colors">Cancel</button>
@@ -605,10 +772,24 @@ function SubscribersTab({ token }) {
       {modal === 'view' && selected && (
         <Modal title="Subscriber Details" onClose={closeModal}>
           <div className="space-y-0 divide-y divide-white/10">
-            {[['Name', selected.name], ['Email', selected.email], ['City', selected.city], ['Phone', selected.phone], ['Joined', fmt(selected.createdAt)]].map(([k, v]) => (
+            {[
+              ['Name', selected.name],
+              ['Email', selected.email],
+              ['Status', selected.isActive !== false ? 'Active' : 'Deactive'],
+              ['City', selected.city],
+              ['Phone', selected.phone],
+              ['Created By', selected.createdBy || 'User'],
+              ['Created At', fmt(selected.createdAt)],
+              ['Updated By', selected.updatedBy || 'User'],
+              ['Updated At', fmt(selected.updatedAt || selected.createdAt)],
+            ].map(([k, v]) => (
               <div key={k} className="flex justify-between py-2.5">
-                <span className="text-xs text-sky-200/90 font-semibold w-16 shrink-0">{k}</span>
-                <span className="text-sm text-white text-right break-all">{v}</span>
+                <span className="text-xs text-sky-200/90 font-semibold w-24 shrink-0">{k}</span>
+                <span className={`text-sm text-right break-all ${
+                  k === 'Status'
+                    ? (v === 'Active' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold')
+                    : 'text-white'
+                }`}>{v}</span>
               </div>
             ))}
           </div>
@@ -768,7 +949,20 @@ function MessagesTab({ token }) {
           <span>Name</span><span>Category</span><span>Email</span><span className="text-right">Actions</span>
         </div>
         {loading ? (
-          <p className="text-sm text-white/70 px-4 py-6">Loading…</p>
+          <div className="divide-y divide-white/5">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-center px-4 py-3.5">
+                <div className="h-4 bg-white/10 rounded-md skeleton w-3/4" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-2/3" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-4/5" />
+                <div className="flex gap-2 justify-end">
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/70 px-4 py-6">No messages found.</p>
         ) : rows.map(r => (
@@ -776,14 +970,34 @@ function MessagesTab({ token }) {
             <span className="text-sm text-white font-medium truncate pr-2">{r.name}</span>
             <span className="text-xs text-indigo-300 font-medium truncate pr-2">{r.category}</span>
             <span className="text-sm text-white/80 truncate pr-2">{r.email}</span>
-            <div className="flex gap-3 justify-end items-center">
+            <div className="flex items-center gap-1.5 justify-end">
               {r.isReplied ? (
-                <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Replied</span>
+                <span title="Replied" className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
+                  <CheckCircle size={13} /> Replied
+                </span>
               ) : (
-                <button onClick={() => openReplyModal(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors font-medium">Reply</button>
+                <button
+                  onClick={() => openReplyModal(r)}
+                  title="Reply via Email"
+                  className="p-1.5 rounded-lg text-indigo-300 hover:text-indigo-200 hover:bg-white/10 transition-colors"
+                >
+                  <Send size={16} />
+                </button>
               )}
-              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors">View</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete</button>
+              <button
+                onClick={() => openView(r)}
+                title="View Message Details"
+                className="p-1.5 rounded-lg text-sky-200 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Eye size={16} />
+              </button>
+              <button
+                onClick={() => openDelete(r)}
+                title="Delete Message"
+                className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}
@@ -792,7 +1006,11 @@ function MessagesTab({ token }) {
       {/* Mobile Card List – shown only on mobile */}
       <div className="sm:hidden space-y-2">
         {loading ? (
-          <p className="text-sm text-white/70 py-4">Loading…</p>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={cardStyle} className="p-4 rounded-xl skeleton h-32" />
+            ))}
+          </div>
         ) : rows.length === 0 ? (
           <p className="text-sm text-white/70 py-4">No messages found.</p>
         ) : rows.map(r => (
@@ -807,14 +1025,36 @@ function MessagesTab({ token }) {
             {r.message && (
               <p className="text-xs text-white/90 leading-relaxed line-clamp-2">{r.message}</p>
             )}
-            <div className="flex gap-4 pt-2 border-t border-white/10 items-center">
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10">
               {r.isReplied ? (
-                <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"><CheckCircle size={12} />Replied</span>
+                <span className="text-xs text-emerald-400 font-medium flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <CheckCircle size={12} /> Replied
+                </span>
               ) : (
-                <button onClick={() => openReplyModal(r)} className="text-xs text-indigo-300 hover:text-indigo-200 transition-colors font-medium">Reply</button>
+                <button
+                  onClick={() => openReplyModal(r)}
+                  title="Reply via Email"
+                  className="p-1.5 rounded-lg text-indigo-300 hover:text-indigo-200 hover:bg-white/10 transition-colors"
+                >
+                  <Send size={16} />
+                </button>
               )}
-              <button onClick={() => openView(r)} className="text-xs text-sky-200 hover:text-white transition-colors flex items-center gap-1.5 font-medium"><Eye size={13} />View</button>
-              <button onClick={() => openDelete(r)} className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5 ml-auto font-medium"><Trash2 size={13} />Delete</button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => openView(r)}
+                  title="View Message Details"
+                  className="p-1.5 rounded-lg text-sky-200 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Eye size={16} />
+                </button>
+                <button
+                  onClick={() => openDelete(r)}
+                  title="Delete Message"
+                  className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -1234,7 +1474,18 @@ function AdminsTab({ token, currentUser }) {
           <span className="text-right">Actions</span>
         </div>
         {loading ? (
-          <p className="text-sm text-white/70 px-4 py-6">Loading…</p>
+          <div className="divide-y divide-white/5">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1.2fr_1fr_auto] items-center px-4 py-3.5 gap-2">
+                <div className="h-4 bg-white/10 rounded-md skeleton w-3/4" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-4/5 hidden sm:block" />
+                <div className="h-4 bg-white/10 rounded-md skeleton w-1/2 hidden md:block" />
+                <div className="flex justify-end">
+                  <div className="h-5 bg-white/10 rounded-md skeleton w-5" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : admins.length === 0 ? (
           <p className="text-sm text-white/70 px-4 py-6">No admins found.</p>
         ) : admins.map(a => (
@@ -1255,16 +1506,17 @@ function AdminsTab({ token, currentUser }) {
             </div>
             <span className="text-xs text-white/85 truncate pr-2 hidden sm:block">{a.email || '—'}</span>
             <span className="text-xs text-white/80 truncate pr-2 hidden md:block">{a.createdBy}</span>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-end">
               {a.username !== currentUser ? (
                 <button
                   onClick={() => setDeleteTarget(a)}
-                  className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+                  title="Remove Admin Account"
+                  className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                 >
-                  <Trash2 size={12} /> <span className="hidden sm:inline">Remove</span>
+                  <Trash2 size={16} />
                 </button>
               ) : (
-                <span className="text-xs text-white/40">—</span>
+                <span className="text-xs text-white/40 pr-2">—</span>
               )}
             </div>
           </div>

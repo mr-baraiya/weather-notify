@@ -12,7 +12,7 @@ export async function GET(request) {
 
   try {
     await connectToDatabase();
-    const subscribers = await Subscriber.find({});
+    const subscribers = await Subscriber.find({ isActive: { $ne: false } });
     let sentCount = 0;
 
     for (const subscriber of subscribers) {
@@ -48,7 +48,7 @@ export async function POST(request) {
     const { phone, alertType } = body;
 
     await connectToDatabase();
-    const query = phone ? { phone } : {};
+    const query = phone ? { phone, isActive: { $ne: false } } : { isActive: { $ne: false } };
     const subscribers = await Subscriber.find(query);
 
     let sentCount = 0;
