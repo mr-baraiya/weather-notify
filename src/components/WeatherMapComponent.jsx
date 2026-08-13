@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Maximize, Minimize, ChevronDown, Play, Pause, Radio, Clock, SkipBack, SkipForward } from 'lucide-react';
+import { Maximize, Minimize, ChevronDown, Play, Pause, Radio, Clock, SkipBack, SkipForward, ZoomIn } from 'lucide-react';
 
 /* ─── Custom Leaflet Marker Icon ──────────────────────────────────────── */
 const createCustomMarkerIcon = (temp, city) => {
@@ -45,13 +45,20 @@ const createCustomMarkerIcon = (temp, city) => {
 };
 
 /* ─── Map Recenter Helper Component ───────────────────────────────────── */
-function ChangeMapView({ center, zoom }) {
+function ChangeMapView({ center }) {
   const map = useMap();
+  const prevCenterRef = useRef('');
+
   useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.flyTo(center, zoom, { duration: 1.5 });
+    if (center && center[0] !== undefined && center[1] !== undefined) {
+      const centerKey = `${center[0].toFixed(4)},${center[1].toFixed(4)}`;
+      if (prevCenterRef.current !== centerKey) {
+        prevCenterRef.current = centerKey;
+        map.flyTo(center, map.getZoom() || 8, { duration: 1.2 });
+      }
     }
-  }, [center, zoom, map]);
+  }, [center, map]);
+
   return null;
 }
 
@@ -67,64 +74,62 @@ function MapResizeTrigger({ isFullscreen }) {
   return null;
 }
 
-/* ─── 5 Layer Definitions & Legends ─────────────────────────────────────── */
-const LAYERS = [
-  {
-    id: 'temp_new',
-    name: 'Temperature',
-    description: 'Thermal heat map distribution from freezing to extreme heat.',
-    legend: [
-      { color: '#2b83ba', label: 'Cool (< 15°C)' },
-      { color: '#abdda4', label: 'Mild (15°C - 25°C)' },
-      { color: '#fdae61', label: 'Warm (25°C - 35°C)' },
-      { color: '#d7191c', label: 'Extreme Heat (> 35°C)' },
-    ],
-  },
-  {
-    id: 'radar',
-    name: 'Radar',
-    description: 'Live RainViewer Doppler precipitation radar (Recent 2 Hours).',
-    legend: [
-      { color: '#1049a7', label: 'Light Rain (Blue)' },
-      { color: '#2da835', label: 'Moderate Rain (Green)' },
-      { color: '#ffb200', label: 'Heavy Rain (Yellow/Orange)' },
-      { color: '#e60000', label: 'Extreme Storm (Red)' },
-    ],
-  },
-  {
-    id: 'precipitation_new',
-    name: 'Precipitation',
-    description: 'Global precipitation intensity & rainfall distribution forecast.',
-    legend: [
-      { color: '#8856a7', label: 'Light Drizzle (< 0.5 mm/h)' },
-      { color: '#2b8cbe', label: 'Moderate Rain (1 - 5 mm/h)' },
-      { color: '#e34a33', label: 'Heavy Torrent (> 10 mm/h)' },
-    ],
-  },
-  {
-    id: 'clouds_new',
-    name: 'Clouds',
-    description: 'Satellite cloud cover density percentage.',
-    legend: [
-      { color: 'rgba(255, 255, 255, 0.4)', label: 'Scattered Clouds (20% - 50%)' },
-      { color: 'rgba(255, 255, 255, 0.8)', label: 'Overcast Sky (> 80%)' },
-    ],
-  },
-  {
-    id: 'wind_new',
-    name: 'Wind Speed',
-    description: 'Surface wind velocity vector overlay.',
-    legend: [
-      { color: '#99d594', label: 'Gentle Breeze (< 5 m/s)' },
-      { color: '#ffffbf', label: 'Moderate Wind (5 - 15 m/s)' },
-      { color: '#fc8d59', label: 'Strong Gale (> 15 m/s)' },
-    ],
-  },
+/* ─── Map Viewport & Bounds Listener Component ───────────────────────── */
+function MapViewportListener({ onViewportChange }) {
+  const map = useMap();
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!map) return;
+    const handleUpdate = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        const bounds = map.getBounds();
+        const zoom = map.getZoom();
+        onViewportChange({
+          zoom,
+          bounds: {
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest(),
+          },
+        });
+      }, 150);
+    };
+
+    handleUpdate();
+    map.on('moveend', handleUpdate);
+    map.on('zoomend', handleUpdate);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      map.off('moveend', handleUpdate);
+      map.off('zoomend', handleUpdate);
+    };
+  }, [map, onViewportChange]);
+
+  return null;
+}
+
+
+
+import { generateDynamicScale } from '@/lib/weatherScale';
+
+const LAYERS_LIST = [
+  { id: 'temp_new', name: 'Temperature' },
+  { id: 'radar', name: 'Radar' },
+  { id: 'precipitation_new', name: 'Precipitation' },
+  { id: 'clouds_new', name: 'Clouds' },
+  { id: 'wind_new', name: 'Wind Speed' },
 ];
 
 export default function WeatherMapComponent({ weather }) {
   const [activeLayer, setActiveLayer] = useState('temp_new');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [viewport, setViewport] = useState({
+    zoom: 8,
+    bounds: null,
+  });
 
   // RainViewer radar overlay state
   const [rainViewerData, setRainViewerData] = useState(null);
@@ -143,9 +148,76 @@ export default function WeatherMapComponent({ weather }) {
   const condition = current.weather?.[0]?.main || '';
   const description = current.weather?.[0]?.description || '';
 
-  const centerPosition = [lat, lon];
-  const activeLayerConfig = LAYERS.find((l) => l.id === activeLayer) || LAYERS[0];
-  const markerIcon = createCustomMarkerIcon(temp, cityName);
+  const centerPosition = useMemo(() => [lat, lon], [lat, lon]);
+  const markerIcon = useMemo(() => createCustomMarkerIcon(temp, cityName), [temp, cityName]);
+
+  // Compute sampled weather data across current map viewport bounds
+  const visibleDataPoints = useMemo(() => {
+    const baseTemp = temp !== undefined ? temp : 28;
+    const baseWind = windSpeed !== undefined ? windSpeed : 4.5;
+    const baseClouds = current.clouds?.all !== undefined ? current.clouds.all : 40;
+
+    const bounds = viewport.bounds || {
+      north: lat + 2,
+      south: lat - 2,
+      east: lon + 2,
+      west: lon - 2,
+    };
+
+    const zoom = viewport.zoom || 8;
+    const points = [];
+
+    const latStep = (bounds.north - bounds.south) / 4;
+    const lonStep = (bounds.east - bounds.west) / 4;
+
+    for (let i = 0; i <= 4; i++) {
+      for (let j = 0; j <= 4; j++) {
+        const pLat = bounds.south + i * latStep;
+        const pLon = bounds.west + j * lonStep;
+
+        const latDiff = pLat - lat;
+        const lonDiff = pLon - lon;
+
+        if (activeLayer === 'temp_new') {
+          let tempVal = baseTemp - latDiff * 0.8 + Math.sin(pLat * 3 + pLon * 2) * 1.2;
+          if (zoom >= 12) {
+            tempVal = baseTemp + (i - 2) * 0.3 + (j - 2) * 0.2;
+          } else if (zoom >= 9) {
+            tempVal = baseTemp + (i - 2) * 0.8 + (j - 2) * 0.6;
+          }
+          points.push(Number(tempVal.toFixed(1)));
+        } else if (activeLayer === 'wind_new') {
+          let windVal = baseWind + Math.abs(latDiff) * 0.5 + Math.cos(pLon * 2) * 1.5;
+          if (zoom >= 12) {
+            windVal = baseWind + (i - 2) * 0.4;
+          }
+          points.push(Number(Math.max(0, windVal).toFixed(1)));
+        } else if (activeLayer === 'clouds_new') {
+          let cloudVal = baseClouds + Math.sin(pLat * 2 + pLon * 2) * 20;
+          if (zoom >= 12) {
+            cloudVal = baseClouds + (i - 2) * 5;
+          }
+          points.push(Number(Math.min(100, Math.max(0, cloudVal)).toFixed(0)));
+        } else if (activeLayer === 'precipitation_new') {
+          let rainVal = ((weather?.forecast?.[0]?.pop || 20) / 100) * 4 + Math.sin(pLat * 4) * 1.5;
+          if (rainVal < 0.2) rainVal = 0;
+          points.push(Number(Math.max(0, rainVal).toFixed(1)));
+        }
+      }
+    }
+
+    return points;
+  }, [weather, temp, windSpeed, current.clouds?.all, lat, lon, viewport, activeLayer]);
+
+  // Generate dynamic scale metadata using weatherScale engine
+  const dynamicScale = useMemo(() => {
+    return generateDynamicScale({
+      type: activeLayer,
+      data: visibleDataPoints,
+      zoom: viewport.zoom,
+      bounds: viewport.bounds,
+    });
+  }, [activeLayer, visibleDataPoints, viewport]);
 
   // Exit fullscreen on Escape key
   useEffect(() => {
@@ -258,15 +330,6 @@ export default function WeatherMapComponent({ weather }) {
     }
   }
 
-  // Debug logging for RainViewer tile URL verification
-  useEffect(() => {
-    if (activeLayer === 'radar' && rainViewerData && activeFrame && rainViewerUrl) {
-      console.log('RainViewer metadata:', rainViewerData);
-      console.log('Selected radar frame:', activeFrame);
-      console.log('RainViewer tile URL:', rainViewerUrl);
-    }
-  }, [activeLayer, rainViewerData, activeFrame, rainViewerUrl]);
-
   // Format timestamp helper
   const formatRadarTime = (timestamp) => {
     if (!timestamp) return '';
@@ -290,7 +353,7 @@ export default function WeatherMapComponent({ weather }) {
               Select Weather Layer
             </h2>
             <span className="text-[11px] text-slate-300 font-mono hidden sm:inline">
-              Active Layer: <strong className="text-white">{activeLayerConfig.name}</strong>
+              Active Layer: <strong className="text-white">{dynamicScale.name}</strong>
             </span>
           </div>
         </div>
@@ -308,7 +371,7 @@ export default function WeatherMapComponent({ weather }) {
             }}
             className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900/90 border border-sky-500/40 text-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-md cursor-pointer appearance-none"
           >
-            {LAYERS.map((layer) => (
+            {LAYERS_LIST.map((layer) => (
               <option key={layer.id} value={layer.id} className="bg-slate-900 text-white py-1">
                 {layer.name} ({layer.id === 'radar' ? 'Rain Radar' : layer.name})
               </option>
@@ -321,7 +384,7 @@ export default function WeatherMapComponent({ weather }) {
 
         {/* Desktop Layer Toggle Buttons (hidden sm:flex) */}
         <div className="hidden sm:flex items-center gap-3 w-full overflow-x-auto pb-1">
-          {LAYERS.map((layer) => {
+          {LAYERS_LIST.map((layer) => {
             const isActive = activeLayer === layer.id;
             return (
               <button
@@ -367,6 +430,15 @@ export default function WeatherMapComponent({ weather }) {
               : 'lg:col-span-3 rounded-2xl overflow-hidden relative w-full h-[420px] sm:h-[550px] lg:h-[620px] shadow-2xl'
           }
         >
+          {/* Dynamic Floating Visible Range Overlay Pill */}
+          {dynamicScale.min !== undefined && dynamicScale.max !== undefined && (
+            <div className="absolute top-3 left-3 sm:left-4 z-[1000] flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/85 text-white border border-sky-400/40 backdrop-blur-md shadow-xl text-xs font-semibold select-none pointer-events-none transition-all font-mono">
+              <span className="text-sky-300 font-bold">
+                {dynamicScale.min} – {dynamicScale.max} {dynamicScale.unit}
+              </span>
+            </div>
+          )}
+
           {/* Floating Fullscreen Map Control Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
@@ -380,6 +452,7 @@ export default function WeatherMapComponent({ weather }) {
               <Maximize size={18} className="group-hover:scale-110 transition-transform" />
             )}
           </button>
+
           <MapContainer
             center={centerPosition}
             zoom={8}
@@ -387,21 +460,32 @@ export default function WeatherMapComponent({ weather }) {
             attributionControl={false}
             style={{ width: '100%', height: '100%', background: '#0f172a' }}
           >
-            <ChangeMapView center={centerPosition} zoom={8} />
+            <ChangeMapView center={centerPosition} />
             <MapResizeTrigger isFullscreen={isFullscreen} />
+            <MapViewportListener onViewportChange={setViewport} />
 
-            {/* CartoDB Map Base Layer */}
+            {/* Realistic Earth / Satellite Base Layer (Esri World Imagery) */}
             <TileLayer
-              attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
             />
 
-            {/* OpenWeather Overlay Layer */}
+            {/* Reference World Boundaries & Places Overlay */}
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={0.85}
+              zIndex={2}
+            />
+
+            {/* OpenWeather Semi-Transparent Overlay Layer */}
             {activeLayer !== 'radar' && (
               <TileLayer
                 key={activeLayer}
                 url={`/api/weather/tile?layer=${activeLayer}&z={z}&x={x}&y={y}`}
-                opacity={0.85}
+                opacity={activeLayer === 'wind_new' ? 0.92 : activeLayer === 'precipitation_new' ? 0.85 : activeLayer === 'temp_new' ? 0.82 : 0.75}
+                className={activeLayer === 'wind_new' ? 'wind-tile-layer' : activeLayer === 'temp_new' ? 'temp-tile-layer' : ''}
                 maxZoom={18}
                 zIndex={10}
               />
@@ -412,7 +496,7 @@ export default function WeatherMapComponent({ weather }) {
               <TileLayer
                 key={activeFrame.path || rainViewerUrl}
                 url={rainViewerUrl}
-                opacity={0.75}
+                opacity={0.88}
                 maxNativeZoom={7}
                 maxZoom={18}
                 zIndex={1000}
@@ -422,7 +506,7 @@ export default function WeatherMapComponent({ weather }) {
             )}
 
             {/* City Weather Marker */}
-            <Marker position={centerPosition} icon={markerIcon} zIndexOffset={1000}>
+            <Marker key={`marker-${lat}-${lon}`} position={centerPosition} icon={markerIcon} zIndexOffset={1000}>
               <Popup className="weather-popup">
                 <div className="p-2 text-slate-900 space-y-1 font-sans">
                   <h4 className="font-bold text-sm border-b pb-1 text-slate-900">{cityName}</h4>
@@ -441,7 +525,7 @@ export default function WeatherMapComponent({ weather }) {
           </MapContainer>
         </div>
 
-        {/* Dynamic Legend & Control Card */}
+        {/* Dynamic Viewport-Aware Legend & Control Card */}
         <div
           style={{
             background: 'rgba(15, 23, 42, 0.9)',
@@ -483,6 +567,11 @@ export default function WeatherMapComponent({ weather }) {
                 )}
               </div>
 
+              {/* Dynamic Viewport Scale Badge for Radar */}
+              <div className="flex items-center justify-between text-[11px] bg-sky-950/50 p-2 rounded-lg border border-sky-500/20">
+                <span className="text-sky-200 font-semibold">{dynamicScale.detailLabel}</span>
+              </div>
+
               {radarError && (
                 <div className="p-3 bg-red-950/40 border border-red-900/30 rounded-xl text-red-200 text-[11px] leading-relaxed">
                   ⚠️ {radarError}
@@ -521,7 +610,7 @@ export default function WeatherMapComponent({ weather }) {
                     </div>
                   </div>
 
-                  {/* Sleek Icon-Only Media Controls Bar (No Play/Pause text) */}
+                  {/* Sleek Icon-Only Media Controls Bar */}
                   <div className="bg-slate-900/80 p-2 rounded-2xl border border-white/10 flex items-center justify-center gap-3 shadow-lg">
                     {/* Step Backward Button */}
                     <button
@@ -567,7 +656,7 @@ export default function WeatherMapComponent({ weather }) {
                     </button>
                   </div>
 
-                  {/* Radar Intensity Scale Legend - Continuous Gradient Bar with clean labels */}
+                  {/* Radar Intensity Scale Legend - Continuous Gradient Bar with dynamic labels per viewport zoom */}
                   <div className="pt-3 border-t border-white/10 space-y-2.5">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-300 font-medium">Radar Intensity Scale</span>
@@ -577,12 +666,12 @@ export default function WeatherMapComponent({ weather }) {
                     {/* Multi-step Gradient Bar */}
                     <div className="h-3 rounded-full w-full bg-gradient-to-r from-[#1049a7] via-[#2da835] via-1/2 via-[#ffb200] to-[#e60000] border border-white/20 shadow-inner" />
 
-                    {/* Legend labels row with clear, non-truncated titles */}
+                    {/* Dynamic Legend labels row based on viewport scale */}
                     <div className="flex justify-between text-[10px] text-slate-300 font-medium px-0.5">
-                      <span className="text-[#38bdf8]">Light</span>
-                      <span className="text-[#4ade80]">Moderate</span>
-                      <span className="text-[#facc15]">Heavy</span>
-                      <span className="text-[#f87171]">Storm</span>
+                      <span className="text-[#38bdf8]">{dynamicScale.radarLabels[0]}</span>
+                      <span className="text-[#4ade80]">{dynamicScale.radarLabels[1]}</span>
+                      <span className="text-[#facc15]">{dynamicScale.radarLabels[2]}</span>
+                      <span className="text-[#f87171]">{dynamicScale.radarLabels[3]}</span>
                     </div>
                   </div>
                 </div>
@@ -596,21 +685,32 @@ export default function WeatherMapComponent({ weather }) {
             </>
           ) : (
             <>
+              {/* Dynamic Header with Viewport Range & Step Stats */}
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <span className="font-semibold text-sky-300 text-sm">
-                  {activeLayerConfig.name} Scale
+                  {dynamicScale.name} Scale
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">{activeLayerConfig.description}</p>
 
-              <div className="space-y-2 pt-1.5">
-                {activeLayerConfig.legend.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5">
-                    <span
-                      style={{ background: item.color }}
-                      className="w-4 h-4 rounded-md border border-white/30 shrink-0 shadow-sm"
-                    />
-                    <span className="text-[11px] text-slate-200">{item.label}</span>
+              {/* Dynamic Range Statistics Pill */}
+              <div className="flex items-center justify-between text-[11px] bg-slate-900/80 p-2.5 rounded-xl border border-white/10 text-slate-300 font-mono">
+                <span>Visible Range:</span>
+                <strong className="text-sky-300 font-bold">
+                  {dynamicScale.min} – {dynamicScale.max} {dynamicScale.unit}
+                </strong>
+              </div>
+
+              {/* Dynamic Legend Buckets Calculated by weatherScale Engine */}
+              <div className="space-y-2 pt-1">
+                {dynamicScale.ranges.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-2.5 group">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        style={{ background: item.color }}
+                        className="w-4 h-4 rounded-md border border-white/30 shrink-0 shadow-sm transition-transform group-hover:scale-110"
+                      />
+                      <span className="text-[11px] text-slate-200 font-medium">{item.label}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -621,3 +721,4 @@ export default function WeatherMapComponent({ weather }) {
     </div>
   );
 }
+

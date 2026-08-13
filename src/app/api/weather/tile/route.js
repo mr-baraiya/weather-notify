@@ -59,6 +59,27 @@ export async function GET(request) {
       },
     });
   } catch (error) {
+    // If precipitation_new failed, attempt fallback to rain_new layer
+    if (layerKey === 'precipitation_new') {
+      try {
+        const fallbackUrl = `https://tile.openweathermap.org/map/rain_new/${z}/${x}/${y}.png?appid=${apiKey}`;
+        const fallbackResponse = await axios.get(fallbackUrl, {
+          responseType: 'arraybuffer',
+          timeout: 8000,
+        });
+
+        return new Response(fallbackResponse.data, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+          },
+        });
+      } catch (fallbackError) {
+        console.error(`Fallback tile fetch error for rain_new z=${z} x=${x} y=${y}:`, fallbackError.message);
+      }
+    }
+
     console.error(`Tile fetch error for layer=${layerKey} z=${z} x=${x} y=${y}:`, error.message);
     // Return transparent tile fallback to prevent broken map graphics
     return new Response(TRANSPARENT_PNG, {
