@@ -1,6 +1,7 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { toTitleCase } from '@/lib/format';
+import { sendWelcomeEmail } from '@/lib/mailer';
 
 const DEFAULT_JOIN_MESSAGE = 'join stand-exclaimed';
 const DEFAULT_SANDBOX_NUMBER = '+1 415 523 8886';
@@ -65,6 +66,17 @@ export async function POST(request) {
       updatedBy: 'User',
     });
     await newSubscriber.save();
+
+    const joinMessage = process.env.TWILIO_WHATSAPP_JOIN_MESSAGE || DEFAULT_JOIN_MESSAGE;
+    const sandboxNumber = formatSandboxNumber(process.env.TWILIO_WHATSAPP_SANDBOX_NUMBER);
+    const rawDigits = sandboxNumber.replace(/[^\d]/g, '');
+    const whatsappLink = `https://wa.me/${rawDigits || '14155238886'}?text=${encodeURIComponent(joinMessage)}`;
+
+    try {
+      await sendWelcomeEmail(newSubscriber.email, newSubscriber.name, whatsappLink, joinMessage, sandboxNumber);
+    } catch (err) {
+      console.error('Failed to send welcome email:', err);
+    }
 
     return new Response(JSON.stringify({
       success: true,

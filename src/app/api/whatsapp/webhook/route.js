@@ -4,6 +4,7 @@ import { getFullWeatherData } from '@/lib/weather';
 import { sendWhatsAppMenu } from '@/lib/twilio';
 import { toTitleCase } from '@/lib/format';
 import { buildOnDemandWeatherAlert, formatTime } from '@/lib/alertTemplates';
+import { trackAndCheckTwilioLimit } from '@/lib/twilioLimit';
 
 const toE164 = (value) => {
   if (!value) {
@@ -88,6 +89,24 @@ const buildTwiml = (message) => {
 
 const buildEmptyTwiml = () => '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
 
+const isSameDay = (d1, d2) => {
+  if (!d1 || !d2) return false;
+  try {
+    return new Date(d1).toISOString().slice(0, 10) === new Date(d2).toISOString().slice(0, 10);
+  } catch {
+    return false;
+  }
+};
+
+const replyWithQuotaNotice = (message, isQuotaReached) => {
+  const quotaText = 'Your daily quota reached. Try next day now.';
+  const finalMessage = isQuotaReached ? `${message}\n\n${quotaText}` : message;
+  return new Response(buildTwiml(finalMessage), {
+    status: 200,
+    headers: { 'Content-Type': 'text/xml' },
+  });
+};
+
 const helpMessage = [
   'Get instant weather updates, rain alerts, and temperature information directly on WhatsApp.',
   'Use the commands below exactly as shown to interact with the bot.',
@@ -166,7 +185,39 @@ export async function POST(request) {
       });
     }
 
+    // System-wide Twilio 50 daily message limit check
+    const systemLimitStatus = await trackAndCheckTwilioLimit();
+    if (systemLimitStatus.limitReached) {
+      console.warn(`Twilio system-wide daily message limit reached (50/50). Suppressing reply for ${from}.`);
+      return new Response(buildEmptyTwiml(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    // Daily Quota Rate-Limiting Logic
+    const now = new Date();
+    if (!isSameDay(subscriber.lastCommandDate, now)) {
+      subscriber.dailyCommandCount = 0;
+    }
+
+    if (subscriber.dailyCommandCount >= 10) {
+      return new Response(buildEmptyTwiml(), {
+        status: 200,
+        headers: { 'Content-Type': 'text/xml' },
+      });
+    }
+
+    subscriber.dailyCommandCount = (subscriber.dailyCommandCount || 0) + 1;
+    subscriber.lastCommandDate = now;
+    await subscriber.save();
+
+    const isQuotaReached = subscriber.dailyCommandCount === 10;
+
     if (!body) {
+      if (isQuotaReached) {
+        return replyWithQuotaNotice(helpMessage, true);
+      }
       try {
         await sendWhatsAppMenu(from);
         return new Response(buildEmptyTwiml(), {
@@ -174,10 +225,7 @@ export async function POST(request) {
           headers: { 'Content-Type': 'text/xml' },
         });
       } catch (error) {
-        return new Response(buildTwiml(helpMessage), {
-          status: 200,
-          headers: { 'Content-Type': 'text/xml' },
-        });
+        return replyWithQuotaNotice(helpMessage, false);
       }
     }
 
@@ -185,31 +233,19 @@ export async function POST(request) {
     const normalized = body.replace(/\s+/g, ' ').trim().toUpperCase();
 
     if (['WEATHER CITY', 'WEATHER <CITY>', 'WEATHER_CITY'].includes(normalized)) {
-      return new Response(buildTwiml('To get weather for another city, send:\nWEATHER <city>\nExample: WEATHER Rajkot'), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('To get weather for another city, send:\nWEATHER <city>\nExample: WEATHER Rajkot', isQuotaReached);
     }
 
     if (['UPDATE NAME', 'UPDATE_NAME'].includes(normalized)) {
-      return new Response(buildTwiml('To update your name, send:\nUPDATE NAME <name>\nExample: UPDATE NAME Vishal'), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('To update your name, send:\nUPDATE NAME <name>\nExample: UPDATE NAME Vishal', isQuotaReached);
     }
 
     if (['UPDATE CITY', 'UPDATE_CITY'].includes(normalized)) {
-      return new Response(buildTwiml('To update your city, send:\nUPDATE CITY <city>\nExample: UPDATE CITY Botad'), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('To update your city, send:\nUPDATE CITY <city>\nExample: UPDATE CITY Botad', isQuotaReached);
     }
 
     if (['UPDATE NAME | CITY', 'UPDATE_BOTH'].includes(normalized)) {
-      return new Response(buildTwiml('To update both, send:\nUPDATE <name> | <city>\nExample: UPDATE Vishal Baraiya | Rajkot'), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('To update both, send:\nUPDATE <name> | <city>\nExample: UPDATE Vishal Baraiya | Rajkot', isQuotaReached);
     }
 
     if (upper === 'WEATHER' || upper.startsWith('WEATHER ')) {
@@ -217,28 +253,19 @@ export async function POST(request) {
       const targetCity = city || subscriber.city;
 
       if (!targetCity) {
-        return new Response(buildTwiml('City not found. Please update your city first.'), {
-          status: 200,
-          headers: { 'Content-Type': 'text/xml' },
-        });
+        return replyWithQuotaNotice('City not found. Please update your city first.', isQuotaReached);
       }
 
       const weatherBundle = await getFullWeatherData(targetCity);
       const message = buildWeatherMessage(targetCity, weatherBundle);
 
-      return new Response(buildTwiml(message), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice(message, isQuotaReached);
     }
 
     if (upper === 'STOP') {
       await Subscriber.deleteOne({ phone: from });
 
-      return new Response(buildTwiml('Your subscription has been deleted. If this was a mistake, please subscribe again on the website.'), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('Your subscription has been deleted. If this was a mistake, please subscribe again on the website.', isQuotaReached);
     }
 
     if (upper.startsWith('UPDATE ')) {
@@ -257,10 +284,7 @@ export async function POST(request) {
       }
 
       if (!nextName && !nextCity) {
-        return new Response(buildTwiml('Invalid update format.\n' + helpMessage), {
-          status: 200,
-          headers: { 'Content-Type': 'text/xml' },
-        });
+        return replyWithQuotaNotice('Invalid update format.\n' + helpMessage, isQuotaReached);
       }
 
       if (nextName) {
@@ -278,10 +302,11 @@ export async function POST(request) {
         `City: ${subscriber.city}`,
       ].join('\n');
 
-      return new Response(buildTwiml(updatedMessage), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice(updatedMessage, isQuotaReached);
+    }
+
+    if (isQuotaReached) {
+      return replyWithQuotaNotice('Unknown command.\n' + helpMessage, true);
     }
 
     try {
@@ -291,10 +316,7 @@ export async function POST(request) {
         headers: { 'Content-Type': 'text/xml' },
       });
     } catch (error) {
-      return new Response(buildTwiml('Unknown command.\n' + helpMessage), {
-        status: 200,
-        headers: { 'Content-Type': 'text/xml' },
-      });
+      return replyWithQuotaNotice('Unknown command.\n' + helpMessage, false);
     }
   } catch (error) {
     console.error('Error in /api/whatsapp/webhook:', error);

@@ -1,3 +1,5 @@
+import { trackAndCheckTwilioLimit } from './twilioLimit';
+
 const twilio = require('twilio');
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -28,6 +30,12 @@ export const formatWhatsAppNumber = (phone) => {
 
 export const sendWhatsAppMessage = async (to, body) => {
   try {
+    const limitStatus = await trackAndCheckTwilioLimit();
+    if (limitStatus.limitReached) {
+      console.warn(`Twilio daily message limit reached (50/50). Suppressing WhatsApp message to ${to}.`);
+      return { status: 'suppressed', reason: 'Twilio daily limit reached' };
+    }
+
     const formattedTo = formatWhatsAppNumber(to);
     const res = await client.messages.create({
       body: body,
@@ -44,6 +52,12 @@ export const sendWhatsAppMessage = async (to, body) => {
 
 export const sendWhatsAppMenu = async (to) => {
   try {
+    const limitStatus = await trackAndCheckTwilioLimit();
+    if (limitStatus.limitReached) {
+      console.warn(`Twilio daily message limit reached (50/50). Suppressing WhatsApp menu to ${to}.`);
+      return { status: 'suppressed', reason: 'Twilio daily limit reached' };
+    }
+
     const formattedTo = formatWhatsAppNumber(to);
     const res = await client.messages.create({
       from: twilioWhatsAppNumber,

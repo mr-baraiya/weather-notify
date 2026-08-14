@@ -1,6 +1,7 @@
 import connectToDatabase from '@/lib/mongodb';
 import Subscriber from '@/models/Subscriber';
 import { verifyAdminRequest, unauthorizedResponse } from '@/lib/auth';
+import { sendWelcomeEmail } from '@/lib/mailer';
 
 // GET /api/admin/subscribers?search=&city=&status=&page=1&limit=10
 export async function GET(request) {
@@ -59,6 +60,18 @@ export async function POST(request) {
       createdBy: adminUsername,
       updatedBy: adminUsername,
     });
+
+    const joinMessage = process.env.TWILIO_WHATSAPP_JOIN_MESSAGE || 'join stand-exclaimed';
+    const sandboxNumber = process.env.TWILIO_WHATSAPP_SANDBOX_NUMBER || '+1 415 523 8886';
+    const rawDigits = sandboxNumber.replace(/[^\d]/g, '');
+    const whatsappLink = `https://wa.me/${rawDigits || '14155238886'}?text=${encodeURIComponent(joinMessage)}`;
+
+    try {
+      await sendWelcomeEmail(sub.email, sub.name, whatsappLink, joinMessage, sandboxNumber);
+    } catch (err) {
+      console.error('Failed to send welcome email:', err);
+    }
+
     return Response.json({ success: true, data: sub }, { status: 201 });
   } catch (e) {
     const msg = e.code === 11000 ? 'Phone number already exists.' : e.message;
