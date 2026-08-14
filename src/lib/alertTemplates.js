@@ -561,6 +561,16 @@ export function evaluateWeatherAlerts(subscriber, weatherData, alertTypeOverride
     pop = hourly[0]?.pop || 0;
   }
 
+  const isCurrentlyRaining = ['rain', 'drizzle', 'thunderstorm', 'squall'].includes(conditionMain.toLowerCase()) || (current.rain && (current.rain['1h'] > 0 || current.rain['3h'] > 0));
+
+  if (isCurrentlyRaining) {
+    pop = Math.max(pop || 0, 80);
+  }
+
+  high = Math.max(Math.round(temp), Math.round(high));
+  low = Math.min(Math.round(temp), Math.round(low));
+  pop = Math.min(100, Math.max(0, Math.round(pop)));
+
   const uvIndex = Math.min(11, Math.max(1, Math.round(temp / 4.5)));
   const uvStatus = getUVStatus(uvIndex);
 

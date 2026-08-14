@@ -89,23 +89,24 @@ export const getForecast = async (query) => {
       };
     });
 
-    // Group by day for 5-Day Forecast
+    // Group by day for 5-Day Forecast using city local timezone date
     const dailyData = {};
     list.forEach((item) => {
-      const date = item.dt_txt.split(' ')[0];
+      const localDateObj = new Date((item.dt + tzOffset) * 1000);
+      const date = localDateObj.toISOString().split('T')[0];
       const popVal = Math.round((item.pop || 0) * 100);
 
       if (!dailyData[date]) {
         dailyData[date] = {
           min: item.main.temp_min,
           max: item.main.temp_max,
-          conditions: [item.weather[0].main],
+          conditions: [item.weather[0]?.main || 'Clear'],
           maxPop: popVal,
         };
       } else {
         dailyData[date].min = Math.min(dailyData[date].min, item.main.temp_min);
         dailyData[date].max = Math.max(dailyData[date].max, item.main.temp_max);
-        dailyData[date].conditions.push(item.weather[0].main);
+        dailyData[date].conditions.push(item.weather[0]?.main || 'Clear');
         dailyData[date].maxPop = Math.max(dailyData[date].maxPop, popVal);
       }
     });

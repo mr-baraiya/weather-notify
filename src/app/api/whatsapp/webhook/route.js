@@ -47,6 +47,16 @@ const buildWeatherMessage = (cityName, weatherBundle) => {
     pop = hourly[0]?.pop || 0;
   }
 
+  const isCurrentlyRaining = ['rain', 'drizzle', 'thunderstorm', 'squall'].includes(condition.toLowerCase()) || (current.rain && (current.rain['1h'] > 0 || current.rain['3h'] > 0));
+
+  if (isCurrentlyRaining) {
+    pop = Math.max(pop || 0, 80);
+  }
+
+  high = Math.max(Math.round(temp), Math.round(high));
+  low = Math.min(Math.round(temp), Math.round(low));
+  pop = Math.min(100, Math.max(0, Math.round(pop)));
+
   const humidity = main.humidity !== undefined ? main.humidity : 63;
   const windSpeed = current.wind?.speed !== undefined ? current.wind.speed : 4.19;
 
