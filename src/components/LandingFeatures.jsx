@@ -172,7 +172,7 @@ export default function LandingFeatures({ weather, loading }) {
             </p>
 
             {/* Metric Row */}
-            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm text-left">
+            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm text-center">
               <div>
                 <span className="text-sky-200/90 block text-xs sm:text-sm font-medium">Temperature</span>
                 <span className="font-extrabold text-white text-base sm:text-xl font-mono">{temp}°C</span>
@@ -301,7 +301,7 @@ export default function LandingFeatures({ weather, loading }) {
             { time: '8 AM', temp: temp, condition: 'Clear', pop: 0 },
             { time: '11 AM', temp: temp + 1, condition: 'Clear', pop: 0 },
           ]).slice(0, 7).map((item, idx) => (
-            <div key={idx} className="flex flex-col items-center min-w-[65px] sm:min-w-[70px] space-y-1.5 text-center flex-1 py-1 px-2 rounded-xl hover:bg-white/5 transition-all shrink-0 sm:shrink">
+            <div key={idx} className={`flex flex-col items-center min-w-[65px] sm:min-w-[70px] space-y-1.5 text-center flex-1 py-1 px-2 rounded-xl hover:bg-white/5 transition-all shrink-0 sm:shrink ${idx >= 3 ? 'hidden sm:flex' : 'flex'}`}>
               <span className="text-xs sm:text-sm font-mono text-slate-200 font-semibold">{item.time}</span>
               <div className="py-1">
                 {renderWeatherIcon(item.condition, 22)}

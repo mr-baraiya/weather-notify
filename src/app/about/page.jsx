@@ -28,7 +28,7 @@ export default function AboutPage() {
         <p className="text-xs text-sky-300 font-bold uppercase tracking-widest mb-5">About</p>
 
         {/* Hero text */}
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
+        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6 bg-gradient-to-r from-sky-200 via-sky-100 to-white bg-clip-text text-transparent">
           Weather alerts,<br />delivered to WhatsApp.
         </h1>
         <p className="text-base sm:text-lg text-sky-100/90 leading-relaxed mb-10 max-w-lg">
@@ -50,7 +50,7 @@ export default function AboutPage() {
 
         {/* Why */}
         <div className="mb-12">
-          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold mb-4">Why we built it</h2>
+          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold mb-4 border-l-2 border-sky-400 pl-3 py-0.5">Why we built it</h2>
           <p className="text-sm sm:text-base text-sky-100/90 leading-relaxed">
             Weather apps are great until you forget to open them. We built Weather Notify because we
             wanted something that worked the other way around — instead of you checking the weather,
@@ -60,7 +60,7 @@ export default function AboutPage() {
 
         {/* What you get — numbered list, no icons */}
         <div>
-          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold mb-6">What you get</h2>
+          <h2 className="text-xs text-sky-300 uppercase tracking-widest font-bold mb-6 border-l-2 border-sky-400 pl-3 py-0.5">What you get</h2>
           <div className="space-y-0 divide-y divide-white/10">
             {what.map((item, i) => (
               <div key={i} className="flex gap-6 py-5">

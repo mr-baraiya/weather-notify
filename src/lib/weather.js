@@ -137,8 +137,15 @@ export const getForecast = async (query) => {
             ? 'Tomorrow'
             : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
 
+        const formattedDate = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC',
+        });
+
         return {
           day: dayName,
+          date: formattedDate,
           min: Math.round(dayData.min),
           max: Math.round(dayData.max),
           condition: mainCondition,

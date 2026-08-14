@@ -232,32 +232,32 @@ export default function PublicReportPage({ params: paramsPromise }) {
               <div>
                 <h2 className="text-xs font-extrabold uppercase tracking-wider text-sky-200/90 mb-3 border-l-2 border-sky-400 pl-2">Hourly Forecast</h2>
                 <div className="overflow-x-auto border border-white/10 rounded-xl">
-                  <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
-                        <th className="py-3 px-3.5 font-mono">Time</th>
-                        <th className="py-3 px-3.5 font-mono">Temperature</th>
-                        <th className="py-3 px-3.5">Condition</th>
-                        <th className="py-3 px-3.5 text-right font-mono">Rain Chance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
-                      {report.hourly && report.hourly.length > 0 ? (
-                        report.hourly.map((h, i) => (
-                          <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
-                            <td className="py-3 px-3.5">{h.time}</td>
-                            <td className="py-3 px-3.5 font-bold text-white">{h.temp}°C</td>
-                            <td className="py-3 px-3.5 font-sans font-medium text-slate-200">{h.condition}</td>
-                            <td className="py-3 px-3.5 text-right font-bold text-sky-300">{h.pop}%</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="4" className="py-4 text-center text-slate-400 font-sans">No hourly data available.</td>
+                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
+                          <th className="py-3 px-3.5 font-mono">Time</th>
+                          <th className="py-3 px-3.5 font-mono">Temperature</th>
+                          <th className="py-3 px-3.5">Condition</th>
+                          <th className="py-3 px-3.5 text-right font-mono hidden sm:table-cell">Rain Chance</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
+                        {report.hourly && report.hourly.length > 0 ? (
+                          report.hourly.map((h, i) => (
+                            <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
+                              <td className="py-3 px-3.5">{h.time}</td>
+                              <td className="py-3 px-3.5 font-bold text-white">{h.temp}°C</td>
+                              <td className="py-3 px-3.5 font-sans font-medium text-slate-200">{h.condition}</td>
+                              <td className="py-3 px-3.5 text-right font-bold text-sky-300 hidden sm:table-cell">{h.pop}%</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="py-4 text-center text-slate-400 font-sans">No hourly data available.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                 </div>
               </div>
 
@@ -269,19 +269,22 @@ export default function PublicReportPage({ params: paramsPromise }) {
                     <table className="w-full text-left text-xs sm:text-sm border-collapse">
                       <thead>
                         <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
-                          <th className="py-3 px-3.5 font-mono">Day & Date</th>
-                          <th className="py-3 px-3.5 font-mono">Temp Range</th>
-                          <th className="py-3 px-3.5">Condition</th>
-                          <th className="py-3 px-3.5 text-right font-mono">Rain Chance</th>
+                          <th className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 font-mono whitespace-nowrap">Day & Date</th>
+                          <th className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 font-mono whitespace-nowrap">Temp Range</th>
+                          <th className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 whitespace-nowrap">Condition</th>
+                          <th className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 text-right font-mono whitespace-nowrap hidden sm:table-cell">Rain Chance</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
                         {report.forecast.map((f, i) => (
                           <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
-                            <td className="py-3 px-3.5 font-bold text-white">{f.day}, {f.date}</td>
-                            <td className="py-3 px-3.5 font-semibold text-slate-200">{f.min}°C – {f.max}°C</td>
-                            <td className="py-3 px-3.5 font-sans font-medium text-slate-200">{f.condition}</td>
-                            <td className="py-3 px-3.5 text-right font-bold text-sky-300">{f.pop}%</td>
+                            <td className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 align-middle whitespace-nowrap">
+                              <span className="block font-bold text-white">{f.day}</span>
+                              {f.date && <span className="block text-[10px] text-sky-200/70 font-medium mt-0.5">{f.date}</span>}
+                            </td>
+                            <td className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 align-middle whitespace-nowrap font-semibold text-slate-200">{f.min}°C – {f.max}°C</td>
+                            <td className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 align-middle whitespace-nowrap font-sans font-medium text-slate-200">{f.condition}</td>
+                            <td className="py-2.5 px-2.5 sm:py-3 sm:px-3.5 align-middle whitespace-nowrap text-right font-bold text-sky-300 hidden sm:table-cell">{f.pop}%</td>
                           </tr>
                         ))}
                       </tbody>

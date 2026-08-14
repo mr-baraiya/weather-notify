@@ -314,7 +314,7 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
                       <th className="p-3 font-mono">Time</th>
                       <th className="p-3 font-mono">Temp</th>
                       <th className="p-3">Condition</th>
-                      <th className="p-3 text-right font-mono">Rain Chance</th>
+                      <th className="p-3 text-right font-mono hidden sm:table-cell">Rain Chance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
@@ -323,7 +323,7 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
                         <td className="p-3">{h.time}</td>
                         <td className="p-3 font-bold text-white">{h.temp}°C</td>
                         <td className="p-3 font-sans font-medium text-slate-200">{h.condition}</td>
-                        <td className="p-3 text-right font-bold text-sky-300">{h.pop}%</td>
+                        <td className="p-3 text-right font-bold text-sky-300 hidden sm:table-cell">{h.pop}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -339,19 +339,22 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
                   <table className="w-full text-left text-xs sm:text-sm border-collapse">
                     <thead>
                       <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
-                        <th className="p-3 font-mono">Day & Date</th>
-                        <th className="p-3 font-mono">Temp Range</th>
-                        <th className="p-3">Condition</th>
-                        <th className="p-3 text-right font-mono">Rain Chance</th>
+                        <th className="py-2.5 px-2.5 sm:p-3 font-mono whitespace-nowrap">Day & Date</th>
+                        <th className="py-2.5 px-2.5 sm:p-3 font-mono whitespace-nowrap">Temp Range</th>
+                        <th className="py-2.5 px-2.5 sm:p-3 whitespace-nowrap">Condition</th>
+                        <th className="py-2.5 px-2.5 sm:p-3 text-right font-mono whitespace-nowrap hidden sm:table-cell">Rain Chance</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
                       {reportData.forecast.map((f, i) => (
                         <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
-                          <td className="p-3 font-bold text-white">{f.day}, {f.date}</td>
-                          <td className="p-3 font-semibold text-slate-200">{f.min}°C – {f.max}°C</td>
-                          <td className="p-3 font-sans font-medium text-slate-200">{f.condition}</td>
-                          <td className="p-3 text-right font-bold text-sky-300">{f.pop}%</td>
+                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap">
+                            <span className="block font-bold text-white">{f.day}</span>
+                            {f.date && <span className="block text-[10px] text-sky-200/70 font-medium mt-0.5">{f.date}</span>}
+                          </td>
+                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap font-semibold text-slate-200">{f.min}°C – {f.max}°C</td>
+                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap font-sans font-medium text-slate-200">{f.condition}</td>
+                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap text-right font-bold text-sky-300 hidden sm:table-cell">{f.pop}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -362,12 +365,13 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
 
             {/* Modal Actions Footer */}
             <div className="pt-4 border-t border-white/10 flex items-center justify-end space-x-3">
-              <button onClick={() => setPreviewModalOpen(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-semibold text-white transition-colors">
-                Close Preview
+              <button onClick={() => setPreviewModalOpen(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-semibold text-white transition-colors flex items-center space-x-1.5">
+                <X className="w-4 h-4" />
+                <span className="hidden sm:inline">Close Preview</span>
               </button>
               <button onClick={handleDownloadPdf} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center space-x-1.5">
                 <Download className="w-4 h-4" />
-                <span>Download A4 PDF</span>
+                <span className="hidden sm:inline">Download A4 PDF</span>
               </button>
             </div>
           </div>
