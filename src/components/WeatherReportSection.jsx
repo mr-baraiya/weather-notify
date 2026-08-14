@@ -133,14 +133,7 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
 
   return (
     <section
-      style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.16)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.4)',
-      }}
-      className="rounded-2xl sm:rounded-3xl max-w-6xl mx-4 sm:mx-6 lg:mx-auto text-white shadow-2xl mt-8 sm:mt-12 mb-16 sm:mb-20 font-sans overflow-hidden p-5 sm:p-8 relative text-left"
+      className="glass-card md:rounded-3xl md:p-8 max-w-6xl mx-4 sm:mx-6 lg:mx-auto text-white mt-8 sm:mt-12 mb-16 sm:mb-20 font-sans overflow-hidden py-4 px-2 relative text-left"
     >
       {/* Toast Notification (Portal) */}
       {mounted && toastMessage && createPortal(

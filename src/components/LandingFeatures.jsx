@@ -43,13 +43,7 @@ export default function LandingFeatures({ weather, loading }) {
   if (loading || !weather || !weather.current) {
     return (
       <div
-        style={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.16)',
-        }}
-        className="rounded-3xl max-w-6xl mx-4 sm:mx-6 lg:mx-auto shadow-2xl mt-8 sm:mt-12 mb-16 sm:mb-20 divide-y divide-white/10 overflow-hidden animate-pulse font-sans"
+        className="glass-card rounded-2xl sm:rounded-3xl max-w-6xl mx-4 sm:mx-6 lg:mx-auto mt-8 sm:mt-12 mb-16 sm:mb-20 divide-y divide-white/10 overflow-hidden animate-pulse font-sans"
       >
         {/* ROW 1 SKELETON */}
         <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
@@ -156,14 +150,7 @@ export default function LandingFeatures({ weather, loading }) {
 
   return (
     <div
-      style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.16)',
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.4)',
-      }}
-      className="rounded-2xl sm:rounded-3xl max-w-6xl mx-4 sm:mx-6 lg:mx-auto text-white shadow-2xl mt-8 sm:mt-12 mb-16 sm:mb-20 font-sans divide-y divide-white/10 overflow-hidden"
+      className="glass-card rounded-2xl sm:rounded-3xl max-w-6xl mx-4 sm:mx-6 lg:mx-auto text-white mt-8 sm:mt-12 mb-16 sm:mb-20 font-sans divide-y divide-white/10 overflow-hidden"
     >
       {/* ─── ROW 1: TODAY'S WEATHER & AIR QUALITY / SOLAR TELEMETRY ────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
