@@ -407,3 +407,81 @@ export async function sendTwilioLimitEmail(toEmail, dailyCount = 50) {
   return transporter.sendMail(mailOptions);
 }
 
+export async function sendSandboxReminderEmail(
+  toEmail,
+  recipientName,
+  whatsappLink,
+  joinMessage,
+  sandboxNumber
+) {
+  const safeName = escapeHtml(recipientName || 'Subscriber');
+  const safeLink = escapeHtml(whatsappLink || 'https://wa.me/14155238886?text=join%20stand-exclaimed');
+  const safeMessage = escapeHtml(joinMessage || 'join stand-exclaimed');
+  const safeNumber = escapeHtml(sandboxNumber || '+1 415 523 8886');
+
+  const mailOptions = {
+    from: `"Weather Notify" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    to: toEmail,
+    subject: 'Renew Your WhatsApp Weather Alerts Sandbox Session',
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        ${mobileStyleHeader}
+        <title>Renew Your WhatsApp Sandbox Session</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc;">
+        <div class="email-wrapper" style="${emailStyles.wrapper}">
+          <div class="email-container" style="${emailStyles.container}">
+
+            <div class="email-header" style="${emailStyles.header}">
+              <h1 style="${emailStyles.logo}">Weather Notify</h1>
+            </div>
+
+            <div class="email-content" style="${emailStyles.content}">
+              <h2 style="${emailStyles.title}">WhatsApp Sandbox Session Expired</h2>
+
+              <p style="${emailStyles.text}">
+                Hi <strong>${safeName}</strong>,<br>
+                It has been 72 hours since you last joined or interacted with Weather Notify on WhatsApp. Because we are currently operating in <strong>Twilio Sandbox Mode</strong>, Twilio requires Sandbox sessions to be renewed once every 72 hours (3 days).
+              </p>
+
+              <div class="email-card" style="margin: 20px 0; padding: 20px; background-color: #fffbeb; border-radius: 8px; text-align: center; box-sizing: border-box; border: 1px solid #fef3c7;">
+                <h3 style="margin: 0 0 10px; color: #78350f; font-size: 16px;">Quick Sandbox Session Renewal</h3>
+                <p style="${emailStyles.text}">
+                  Click the button below to send the sandbox join keyword again:
+                </p>
+
+                <div style="margin: 18px 0;">
+                  <a href="${safeLink}" target="_blank" class="email-button" style="${emailStyles.button}">
+                    Renew WhatsApp Session
+                  </a>
+                </div>
+
+                <div style="margin-top: 16px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; color: #334155; text-align: left; word-break: break-word;">
+                  <strong>Manual Opt-In:</strong><br>
+                  Send <code>${safeMessage}</code> to <strong>${safeNumber}</strong> on WhatsApp.
+                </div>
+              </div>
+
+              <p style="${emailStyles.text}">
+                If you do not renew your sandbox session, Twilio will block daily morning weather notifications and severe alerts. Renewing takes only 2 seconds!
+              </p>
+            </div>
+
+            <div class="email-footer" style="${emailStyles.footer}">
+              Weather Notify Team<br>
+              © ${new Date().getFullYear()} Weather Notify
+            </div>
+
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+

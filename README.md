@@ -1,6 +1,6 @@
 # Weather Notify
 
-A Next.js web application that displays live weather data, provides an interactive 5-layer weather map with real RainViewer Doppler radar animation, lets users subscribe with their WhatsApp number, and sends automated daily weather alerts.
+A Next.js web application that displays live weather data, provides an interactive 7-layer Windy.com weather map with real-time particle animations and radar overlays, lets users subscribe with their WhatsApp number, and sends automated daily weather alerts.
 
 ![Weather Notify](public/README-screenshot.png)
 
@@ -9,13 +9,17 @@ A Next.js web application that displays live weather data, provides an interacti
 ## Key Features
 
 - **Live Weather Dashboard** — Auto-detects user location via geolocation with clear weather insights, air quality metrics (`µg/m³`), atmospheric conditions, and sun & UV recommendations.
-- **Interactive Weather Map & Live Radar** — 5 dedicated weather layers at `/weather-map`:
-  - **Radar** — Live Doppler precipitation radar from RainViewer with 1-second client-side animation, range slider scrubbing, local timezone frame timestamps, and 10-minute auto-refresh.
-  - **Precipitation** — Global rainfall intensity & forecast distribution from OpenWeather.
+- **Interactive Windy.com Map & Live Radar** — 7 dedicated weather layers at `/weather-map`:
+  - **Weather Radar** — Live Doppler precipitation radar.
+  - **Rain, thunder** — Global rainfall intensity & forecast distribution.
   - **Temperature** — Thermal heat map overlay.
   - **Clouds** — Satellite cloud cover density.
-  - **Wind Speed** — Surface wind velocity overlay.
+  - **Wind** — Surface wind velocity overlay.
+  - **Waves** — Wave height, swell direction, and sea state forecasts.
+  - **Sea Pressure** — Atmospheric pressure contour lines.
+  - **Custom Map HUD Controls** — Locate current position, dynamic layer popover selector, and true window-only Fullscreen mode (disables body scrolling and unmounts outer page layouts).
 - **WhatsApp Subscription & Automated Alerts** — Users subscribe with their name, city, and WhatsApp number. Vercel Cron automatically dispatches daily weather alerts at 6 AM IST with prioritized weather advisory tips.
+- **72-Hour Twilio Sandbox Reminder** — Automatically monitors subscriber WhatsApp inactivity. If a subscriber's Twilio Sandbox session is expiring (72 hours of WhatsApp inactivity), the daily cron sweeps and sends an email reminder with a quick-opt-in link to renew the session.
 - **WhatsApp Bot Commands** — Subscribers can text `WEATHER`, `WEATHER <city>`, `UPDATE`, or `STOP` directly to the WhatsApp bot.
 - **Dynamic State Resolution** — Resolves location state names dynamically via OpenWeather Geocoding API (e.g. `Bhopal, Madhya Pradesh`, `Rajkot, Gujarat`).
 - **Admin Dashboard** — Secured with JWT token authentication:
@@ -33,8 +37,8 @@ A Next.js web application that displays live weather data, provides an interacti
 |---|---|
 | Framework | Next.js 16 (App Router) |
 | UI | React 19, Tailwind CSS 4, Lucide Icons |
-| Maps | Leaflet, React-Leaflet, CartoDB Voyager |
-| Radar & Weather APIs | RainViewer Weather API, OpenWeather Maps API |
+| Maps | Windy.com Embed Engine |
+| Radar & Weather APIs | OpenWeather Maps API, OpenWeather Air Pollution API |
 | Database | MongoDB (Mongoose) |
 | Messaging | Twilio WhatsApp API |
 | Email (SMTP) | Nodemailer |

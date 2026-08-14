@@ -69,6 +69,38 @@ const faqs = [
     ),
   },
   {
+    question: 'Why did I stop receiving daily weather alerts?',
+    answer: (
+      <div className="space-y-3">
+        <p className="text-sm text-sky-100/90 leading-relaxed">
+          Because Weather Notify currently operates in <strong>Twilio Sandbox Mode</strong>, Twilio enforces a strict policy where WhatsApp sandbox sessions <strong>expire every 72 hours (3 days)</strong>.
+        </p>
+        <p className="text-sm text-sky-100/90 leading-relaxed">
+          To continue receiving daily morning weather alerts, you must renew your WhatsApp session once every 3 days by simply sending a message to the sandbox number:
+        </p>
+        <div className="space-y-2">
+          <div
+            style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+            className="rounded-lg px-4 py-3"
+          >
+            <p className="text-[10px] uppercase tracking-wider text-sky-200/80 mb-1">Send this message</p>
+            <p className="font-mono text-sm text-emerald-400 font-semibold">join stand-exclaimed</p>
+          </div>
+          <div
+            style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+            className="rounded-lg px-4 py-3"
+          >
+            <p className="text-[10px] uppercase tracking-wider text-sky-200/80 mb-1">To this number</p>
+            <p className="font-mono text-sm text-sky-300 font-semibold">+1 415 523 8886</p>
+          </div>
+        </div>
+        <p className="text-xs text-sky-200/80">
+          Alternatively, you can send any chatbot command (like <code className="text-sky-200">WEATHER</code>) to the sandbox number to keep the session active. If your session expires, the app will automatically send you an email reminder with a quick renewal link.
+        </p>
+      </div>
+    ),
+  },
+  {
     question: 'How does Weather Notify work?',
     answer: 'Weather Notify tracks real-time weather forecasts for your subscribed city and sends automated alerts directly to your WhatsApp when rain, heatwaves, or severe weather changes occur.',
   },
@@ -91,6 +123,10 @@ const faqs = [
   {
     question: 'What is the Daily Weather Report and what date range is supported?',
     answer: 'The Daily Weather Report generates an official 1-page A4 PDF bulletin featuring complete telemetry: condition, temperatures, feels-like, humidity, wind speed, AQI index, hourly forecast, 5-day outlook, and advisories. You can select report dates spanning from 10 days in the past up to 10 days in the future.',
+  },
+  {
+    question: 'Can I download weather reports for past or future dates?',
+    answer: 'Yes! Weather Notify allows you to select, preview, and download weather reports for any date spanning from 10 days in the past up to 10 days in the future.',
   },
   {
     question: 'How can I preview, download, or share a Weather Report?',

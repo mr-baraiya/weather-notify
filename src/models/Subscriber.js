@@ -33,6 +33,7 @@ const SubscriberSchema = new mongoose.Schema({
   lastColdWeatherAlertSent: { type: Date, default: null },
   lastUVAlertSent: { type: Date, default: null },
   lastVisibilityAlertSent: { type: Date, default: null },
+  lastSandboxReminderSent: { type: Date, default: null },
   // WhatsApp Command Quota Tracking
   dailyCommandCount: { type: Number, default: 0 },
   lastCommandDate: { type: Date, default: null },
