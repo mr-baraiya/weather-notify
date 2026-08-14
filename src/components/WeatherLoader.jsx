@@ -1,6 +1,6 @@
 const WeatherLoader = () => (
   <div
-    className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between"
+    className="glass-card !border-none rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between"
   >
     {/* City + description skeleton */}
     <div className="space-y-2">

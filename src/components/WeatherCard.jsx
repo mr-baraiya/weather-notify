@@ -13,7 +13,7 @@ const WeatherCard = ({ weather }) => {
   const condition = current.weather?.[0]?.main || 'Clear';
 
   return (
-    <div className="glass-card rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between text-left">
+    <div className="glass-card !border-none rounded-4xl p-6 sm:p-8 w-full h-full min-h-[380px] flex flex-col justify-between text-left">
       
       {/* City & Description */}
       <div>
