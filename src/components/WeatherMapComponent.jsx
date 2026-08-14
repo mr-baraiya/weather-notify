@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Locate } from 'lucide-react';
+import { Locate, Maximize2, Minimize2, Layers } from 'lucide-react';
 import WeatherIcon from './WeatherIcon';
 
 const LAYERS_LIST = [
@@ -34,7 +34,7 @@ const LAYER_DESCRIPTIONS = {
   pressure_new: 'Atmospheric sea level pressure contours, identifying high and low-pressure systems.',
 };
 
-export default function WeatherMapComponent({ weather }) {
+export default function WeatherMapComponent({ weather, onLocationChange }) {
   const [activeLayer, setActiveLayer] = useState('temp_new');
   const [zoom, setZoom] = useState(8);
   const [iframeLoaded, setIframeLoaded] = useState(false);
@@ -45,6 +45,7 @@ export default function WeatherMapComponent({ weather }) {
   const [localCoords, setLocalCoords] = useState(null);
   const [localWeather, setLocalWeather] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [syncTrigger, setSyncTrigger] = useState(Date.now());
 
   // Dynamic values based on current city search vs geolocation override
   const activeWeather = localWeather || weather;
@@ -70,6 +71,18 @@ export default function WeatherMapComponent({ weather }) {
     setIsDropdownOpen(false);
   }, [weather]);
 
+  // Disable browser body scrolling when map is in fullscreen mode
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
+
   const handleLocateUser = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -87,6 +100,7 @@ export default function WeatherMapComponent({ weather }) {
           lon: userLon,
           cityName: 'My Location'
         });
+        setSyncTrigger(Date.now());
 
         try {
           const res = await fetch(`/api/weather?lat=${userLat}&lon=${userLon}`);
@@ -98,6 +112,10 @@ export default function WeatherMapComponent({ weather }) {
               lon: userLon,
               cityName: data.data.current?.name || 'My Location'
             });
+            setSyncTrigger(Date.now());
+            if (onLocationChange) {
+              onLocationChange(data.data, data.data.current?.name || 'Current Location');
+            }
           }
         } catch (err) {
           console.error("Error fetching local weather stats:", err);
@@ -134,8 +152,8 @@ export default function WeatherMapComponent({ weather }) {
   const windyUrl = useMemo(() => {
     const overlay = WINDY_OVERLAY_MAP[activeLayer] || 'temp';
     
-    return `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&zoom=${zoom}&level=surface&overlay=${overlay}&menu=&message=true&marker=true&metricWind=default&metricTemp=default&calendar=now`;
-  }, [lat, lon, activeLayer, zoom]);
+    return `https://embed.windy.com/embed2.html?lat=${lat}&lon=${lon}&zoom=${zoom}&level=surface&overlay=${overlay}&menu=&message=true&marker=true&metricWind=default&metricTemp=default&calendar=now&_ts=${syncTrigger}`;
+  }, [lat, lon, activeLayer, zoom, syncTrigger]);
 
   // AQI Level Parser
   const getAqiLabel = (aqi) => {
@@ -158,126 +176,38 @@ export default function WeatherMapComponent({ weather }) {
     <div
       className={
         isFullscreen
-          ? 'fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl p-4 sm:p-6 flex flex-col space-y-4 overflow-hidden text-left font-sans'
+          ? 'fixed inset-0 z-[9999] bg-slate-950 w-screen h-screen overflow-hidden text-left font-sans'
           : 'w-full space-y-6 text-left'
       }
     >
       {/* Top Banner Control Panel */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleLocateUser}
-              disabled={isLocating}
-              className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all cursor-pointer ${
-                isLocating 
-                  ? 'bg-indigo-600/40 border-indigo-500/50 text-indigo-300' 
-                  : 'bg-indigo-600/20 hover:bg-indigo-600/30 border-indigo-500/30 text-indigo-400 hover:text-white'
-              }`}
-              title="Locate Current Position"
-            >
-              <Locate size={16} className={isLocating ? 'animate-spin' : ''} />
-            </button>
+      {!isFullscreen && (
+        <div className="flex flex-col gap-4 pb-2 border-b border-white/10">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-white tracking-wide uppercase">
                 Weather Layers
               </h2>
               <p className="text-xs text-indigo-200/90 font-semibold">
-                Switch map telemetry layer to explore different weather indices.
+                Use map overlay telemetry and controls to explore different weather indices.
               </p>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sky-200">
-            Centering Telemetry: <strong className="text-white ml-0.5">{cityName}</strong>
-          </div>
-        </div>
-
-        {/* Layer Selector: Dropdown on Mobile, Tabs on Desktop */}
-        <div className="w-full">
-          {/* Mobile View Dropdown select */}
-          <div className="relative block sm:hidden w-full select-none pointer-events-auto">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between w-full bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl py-3 px-4 text-xs font-semibold text-white focus:outline-none transition-all shadow-md cursor-pointer"
-            >
-              <span>{LAYERS_LIST.find((l) => l.id === activeLayer)?.name}</span>
-              <svg
-                className={`w-4 h-4 text-white transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isDropdownOpen && (
-              <>
-                {/* Click outside overlay */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-                
-                {/* Options List */}
-                <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl bg-slate-950/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden py-1">
-                  {LAYERS_LIST.map((layer) => {
-                    const isSelected = activeLayer === layer.id;
-                    return (
-                      <button
-                        key={layer.id}
-                        onClick={() => {
-                          setActiveLayer(layer.id);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white font-bold'
-                            : 'text-indigo-200/90 hover:bg-white/10 hover:text-white'
-                        }`}
-                      >
-                        <span>{layer.name}</span>
-                        {isSelected && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Desktop View Scrollable Tabs */}
-          <div className="hidden sm:flex items-center gap-2.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {LAYERS_LIST.map((layer) => {
-              const isActive = activeLayer === layer.id;
-              return (
-                <button
-                  key={layer.id}
-                  onClick={() => setActiveLayer(layer.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 whitespace-nowrap cursor-pointer hover:-translate-y-0.5 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-950/50 font-bold'
-                      : 'bg-white/5 border-white/10 text-sky-200/80 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  <span>{layer.name}</span>
-                </button>
-              );
-            })}
+            <div className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sky-200">
+              Centering Telemetry: <strong className="text-white ml-0.5">{cityName}</strong>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Layout Stack: Large Map on Top, Black Box details below */}
-      <div className={`flex flex-col gap-6 ${isFullscreen ? 'flex-1 min-h-0 overflow-y-auto' : ''}`}>
+      <div className={isFullscreen ? 'w-full h-full' : 'flex flex-col gap-6'}>
         
         {/* Large Windy Iframe Map Wrapper */}
         <div
-          className={`w-full glass-card rounded-3xl overflow-hidden relative flex flex-col shrink-0 transition-all duration-300 ${
-            isFullscreen ? 'h-[75vh] sm:h-[80vh]' : 'h-[550px] sm:h-[680px] lg:h-[760px]'
+          className={`w-full relative flex flex-col shrink-0 transition-all duration-300 ${
+            isFullscreen 
+              ? 'h-full rounded-none' 
+              : 'glass-card rounded-3xl h-[550px] sm:h-[680px] lg:h-[760px]'
           }`}
         >
           {/* Iframe Loading screen */}
@@ -293,21 +223,104 @@ export default function WeatherMapComponent({ weather }) {
             </div>
           )}
 
-          {/* Floating UI Custom Controls overlay */}
-          <div className="absolute top-4 left-4 z-40 flex flex-col gap-2 select-none pointer-events-none hidden sm:flex">
-            <div className="px-3.5 py-2 rounded-2xl bg-slate-950/90 border border-white/10 backdrop-blur-md shadow-lg text-[11px] font-semibold flex flex-col gap-0.5">
-              <span className="text-indigo-300 font-bold uppercase tracking-wider text-[9px] mb-0.5">Active Overlay</span>
-              <span className="text-white text-xs font-extrabold leading-tight">
-                {LAYERS_LIST.find(l => l.id === activeLayer)?.name}
-              </span>
-              <span className="font-mono text-[9px] mt-0.5 text-indigo-100/80">
-                GPS: {Number(lat).toFixed(4)}°, {Number(lon).toFixed(4)}°
-              </span>
+          {/* Floating Controls HUD (Top-Left) */}
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-40 flex flex-col gap-1.5 sm:gap-2 select-none pointer-events-auto">
+            {/* Coordinates Display Card (Desktop only) */}
+            <div className="hidden sm:flex px-3 py-1.5 rounded-xl bg-slate-950/90 border border-white/10 backdrop-blur-md shadow-lg font-mono text-[9px] font-bold text-indigo-200/90 pointer-events-none">
+              GPS: {Number(lat).toFixed(4)}°, {Number(lon).toFixed(4)}°
+            </div>
+
+            {/* Quick Actions Panel */}
+            <div className="flex flex-col gap-1.5 sm:gap-2">
+              {/* Row 1: Icon Actions (Locate & Fullscreen) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 order-1 sm:order-2">
+                {/* Geolocation Button */}
+                <button
+                  onClick={handleLocateUser}
+                  disabled={isLocating}
+                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border transition-all cursor-pointer shadow-lg backdrop-blur-md ${
+                    isLocating 
+                      ? 'bg-indigo-600/40 border-indigo-500/50 text-indigo-300 pointer-events-none' 
+                      : 'bg-slate-950/90 hover:bg-slate-900 border-white/10 text-sky-300 hover:text-white'
+                  }`}
+                  title="Locate Current Position"
+                >
+                  <Locate className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                </button>
+
+                {/* Floating Fullscreen Toggle Button */}
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-950/90 border border-white/10 text-sky-300 hover:text-white hover:bg-slate-900 backdrop-blur-md shadow-lg cursor-pointer transition-all"
+                  title={isFullscreen ? 'Exit Fullscreen Map' : 'Enter Fullscreen Map'}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  ) : (
+                    <Maximize2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Row 2: Floating Custom Layers Selector Dropdown */}
+              <div className="relative order-2 sm:order-1">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-slate-950/90 border border-white/10 hover:bg-slate-900 text-sky-300 hover:text-white transition-all shadow-lg backdrop-blur-md cursor-pointer text-[10px] sm:text-xs font-bold whitespace-nowrap"
+                >
+                  <Layers className="w-3 h-3 sm:w-[13px] sm:h-[13px]" />
+                  <span>{LAYERS_LIST.find((l) => l.id === activeLayer)?.name}</span>
+                  <svg
+                    className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-white transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isDropdownOpen && (
+                  <>
+                    {/* Click outside overlay */}
+                    <div
+                      className="fixed inset-0 z-40 cursor-default"
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    
+                    {/* Options popover list */}
+                    <div className="absolute top-full left-0 mt-1.5 sm:mt-2 z-50 w-[160px] sm:w-[200px] rounded-lg sm:rounded-xl bg-slate-950/95 border border-white/10 backdrop-blur-xl shadow-2xl overflow-hidden py-0.5 sm:py-1">
+                      {LAYERS_LIST.map((layer) => {
+                        const isSelected = activeLayer === layer.id;
+                        return (
+                          <button
+                            key={layer.id}
+                            onClick={() => {
+                              setActiveLayer(layer.id);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-[10px] sm:text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white font-bold'
+                                : 'text-indigo-200/90 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            <span>{layer.name}</span>
+                            {isSelected && (
+                              <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Custom overlays to cover Windy.com branding logo & promotional URL */}
-          <div className="absolute top-[3px] left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-slate-950/90 border border-white/10 backdrop-blur-md shadow-lg text-[9px] font-bold uppercase tracking-widest text-indigo-300 select-none pointer-events-none whitespace-nowrap">
+          <div className="absolute top-[3px] left-1/2 -translate-x-1/2 z-40 px-2.5 py-1 sm:px-4 sm:py-2 rounded-full bg-slate-950/90 border border-white/10 backdrop-blur-md shadow-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider sm:tracking-widest text-indigo-300 select-none pointer-events-none whitespace-nowrap">
             Satellite Telemetry
           </div>
 
@@ -329,7 +342,8 @@ export default function WeatherMapComponent({ weather }) {
         </div>
 
         {/* Bottom Dashboard Panel: Horizontal Grid below the map */}
-        <div className="w-full glass-card rounded-3xl p-6">
+        {!isFullscreen && (
+          <div className="w-full glass-card rounded-3xl p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             {/* Column 1: Core Weather Stats */}
@@ -392,29 +406,29 @@ export default function WeatherMapComponent({ weather }) {
               {airPollution?.aqi !== undefined ? (
                 <div className="bg-slate-950/40 border border-white/10 rounded-2xl p-3.5 shadow-inner">
                   <div className="flex justify-between items-center">
-                    <span className="text-indigo-200/90 text-[10px] uppercase font-bold tracking-wider">
+                    <span className="text-indigo-300 text-xs uppercase font-extrabold tracking-wider">
                       Air Quality
                     </span>
-                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${aqiInfo.color}`}>
+                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${aqiInfo.color}`}>
                       {aqiInfo.label}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 mt-3 text-center text-[10px] text-slate-300 font-mono">
+                  <div className="grid grid-cols-4 gap-2 mt-4 text-center font-mono">
                     <div>
-                      <div className="text-slate-300 text-[8px] uppercase font-bold">PM2.5</div>
-                      <div className="font-bold text-white mt-0.5">{airPollution.pm25}</div>
+                      <div className="text-slate-300 text-[10px] sm:text-xs uppercase font-bold tracking-wider">PM2.5</div>
+                      <div className="text-sm sm:text-base font-extrabold text-white mt-1">{airPollution.pm25}</div>
                     </div>
                     <div>
-                      <div className="text-slate-300 text-[8px] uppercase font-bold">PM10</div>
-                      <div className="font-bold text-white mt-0.5">{airPollution.pm10}</div>
+                      <div className="text-slate-300 text-[10px] sm:text-xs uppercase font-bold tracking-wider">PM10</div>
+                      <div className="text-sm sm:text-base font-extrabold text-white mt-1">{airPollution.pm10}</div>
                     </div>
                     <div>
-                      <div className="text-slate-300 text-[8px] uppercase font-bold">NO2</div>
-                      <div className="font-bold text-white mt-0.5">{airPollution.no2}</div>
+                      <div className="text-slate-300 text-[10px] sm:text-xs uppercase font-bold tracking-wider">NO2</div>
+                      <div className="text-sm sm:text-base font-extrabold text-white mt-1">{airPollution.no2}</div>
                     </div>
                     <div>
-                      <div className="text-slate-300 text-[8px] uppercase font-bold">O3</div>
-                      <div className="font-bold text-white mt-0.5">{airPollution.o3}</div>
+                      <div className="text-slate-300 text-[10px] sm:text-xs uppercase font-bold tracking-wider">O3</div>
+                      <div className="text-sm sm:text-base font-extrabold text-white mt-1">{airPollution.o3}</div>
                     </div>
                   </div>
                 </div>
@@ -460,8 +474,8 @@ export default function WeatherMapComponent({ weather }) {
             </div>
 
           </div>
-        </div>
-
+          </div>
+        )}
       </div>
     </div>
   );

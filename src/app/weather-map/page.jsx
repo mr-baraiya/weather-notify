@@ -91,6 +91,12 @@ export default function WeatherMapPage() {
     return () => { canceled = true; };
   }, []);
 
+  const handleLocationChange = (newWeather, cityName) => {
+    setWeather(newWeather);
+    setActiveCity(cityName);
+    setSearchInput(cityName);
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (!searchInput.trim()) return;
@@ -162,7 +168,7 @@ export default function WeatherMapPage() {
         <div className="border-t border-white/10 my-10" />
 
         {/* Main Interactive Weather Map Component */}
-        <WeatherMapComponent weather={weather} />
+        <WeatherMapComponent weather={weather} onLocationChange={handleLocationChange} />
 
       </div>
     </div>
