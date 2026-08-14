@@ -13,6 +13,8 @@ const faqs = [
           {[
             { cmd: 'WEATHER', desc: 'Get weather for your saved city' },
             { cmd: 'WEATHER <city>', desc: 'Get weather for any specific city' },
+            { cmd: 'REPORT', desc: 'Get official weather report link for your city' },
+            { cmd: 'REPORT <city>', desc: 'Get official report link for any specific city' },
             { cmd: 'UPDATE <name> | <city>', desc: 'Update your name and city together' },
             { cmd: 'UPDATE NAME <name>', desc: 'Update only your name' },
             { cmd: 'UPDATE CITY <city>', desc: 'Update only your city' },
@@ -30,10 +32,14 @@ const faqs = [
           ))}
         </div>
         <p className="text-xs text-sky-200/80">
-          If you send an unrecognised message, the bot will reply with a list of available commands.
+          Note: To prevent message spam, please allow 1 minute between consecutive WhatsApp commands (up to 10 commands/day). If you send an unrecognised message, the bot will reply with available commands.
         </p>
       </div>
     ),
+  },
+  {
+    question: 'Why is there a 1-minute wait time between WhatsApp commands?',
+    answer: 'To prevent message spamming and ensure fair usage across all subscribers, Weather Notify enforces a 1-minute cooldown between command responses. If you send consecutive commands rapidly, please wait 60 seconds before sending your next request.',
   },
   {
     question: 'How do I connect my WhatsApp manually?',
@@ -81,6 +87,14 @@ const faqs = [
   {
     question: 'Which cities are supported?',
     answer: 'All major cities globally via OpenWeather real-time data.',
+  },
+  {
+    question: 'What is the Daily Weather Report and what date range is supported?',
+    answer: 'The Daily Weather Report generates an official 1-page A4 PDF bulletin featuring complete telemetry: condition, temperatures, feels-like, humidity, wind speed, AQI index, hourly forecast, 5-day outlook, and advisories. You can select report dates spanning from 10 days in the past up to 10 days in the future.',
+  },
+  {
+    question: 'How can I preview, download, or share a Weather Report?',
+    answer: 'On the homepage, select any city and date to generate a report. Click "View Report" for an in-app glassmorphic preview, "Download A4 PDF" to download the official 1-page document, "Email Report" to send it to your email inbox, or "Share" to copy a direct public link.',
   },
 ];
 

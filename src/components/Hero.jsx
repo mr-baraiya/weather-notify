@@ -5,6 +5,7 @@ import WeatherCard from './WeatherCard';
 import WeatherLoader from './WeatherLoader';
 import SubscribeForm from './SubscribeForm';
 import LandingFeatures from './LandingFeatures';
+import WeatherReportSection from './WeatherReportSection';
 
 const Hero = () => {
   const [weather, setWeather] = useState(null);
@@ -94,6 +95,8 @@ const Hero = () => {
         </div>
 
         <LandingFeatures weather={weather} loading={loading} />
+
+        <WeatherReportSection initialCity={weather?.current?.name || 'Rajkot'} />
       </div>
     </section>
   );

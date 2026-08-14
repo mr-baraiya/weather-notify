@@ -205,8 +205,22 @@ export async function POST(request) {
       });
     }
 
-    // Daily Quota Rate-Limiting Logic
+    // Daily Quota & Anti-Spam Rate-Limiting Logic
     const now = new Date();
+
+    // 1-Minute Cooldown / Anti-Spam Check (Must wait 1 minute between WhatsApp commands)
+    if (subscriber.lastCommandDate) {
+      const elapsedMs = now.getTime() - new Date(subscriber.lastCommandDate).getTime();
+      const COOLDOWN_MS = 60 * 1000; // 60 seconds (1 minute)
+      if (elapsedMs < COOLDOWN_MS) {
+        console.warn(`Anti-spam: ${from} sent command within 1 minute (${Math.round(elapsedMs / 1000)}s elapsed). Suppressing response.`);
+        return new Response(buildEmptyTwiml(), {
+          status: 200,
+          headers: { 'Content-Type': 'text/xml' },
+        });
+      }
+    }
+
     if (!isSameDay(subscriber.lastCommandDate, now)) {
       subscriber.dailyCommandCount = 0;
     }
