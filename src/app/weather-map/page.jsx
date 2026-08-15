@@ -22,12 +22,15 @@ const WeatherMapComponent = dynamic(() => import('@/components/WeatherMapCompone
   ),
 });
 
-const POPULAR_CITIES = ['Rajkot', 'Mumbai', 'Ahmedabad', 'London', 'New York'];
+import LocationSelector from '@/components/LocationSelector';
+
+const POPULAR_CITIES = ['Rajkot', 'Delhi', 'Mumbai', 'Bangalore', 'Kolkata', 'Ahmedabad', 'London', 'New York'];
 
 export default function WeatherMapPage() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState('');
+  const [location, setLocation] = useState({ country: 'IN', state: '', city: '' });
+  const [locationErrors, setLocationErrors] = useState({ country: '', state: '', city: '' });
   const [activeCity, setActiveCity] = useState('Rajkot');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -81,7 +84,7 @@ export default function WeatherMapPage() {
               console.error('Location map weather error:', err);
             }
           },
-          () => {},
+          () => { },
           { enableHighAccuracy: true, timeout: 5000, maximumAge: 300000 }
         );
       }
@@ -94,18 +97,27 @@ export default function WeatherMapPage() {
   const handleLocationChange = (newWeather, cityName) => {
     setWeather(newWeather);
     setActiveCity(cityName);
-    setSearchInput(cityName);
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (!searchInput.trim()) return;
-    fetchCityWeather(searchInput.trim());
+
+    let hasErr = false;
+    const errors = { country: '', state: '', city: '' };
+
+    if (!location.country) { errors.country = 'Country is Required'; hasErr = true; }
+    if (!location.state) { errors.state = 'State is Required'; hasErr = true; }
+    if (!location.city) { errors.city = 'City is Required'; hasErr = true; }
+
+    setLocationErrors(errors);
+    if (hasErr) return;
+
+    fetchCityWeather(location.city);
   };
 
   return (
     <div className="min-h-screen py-16 sm:py-24 px-4 text-white">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
 
         {/* Eyebrow */}
         <p className="text-xs text-sky-300 font-bold uppercase tracking-widest mb-5">Weather Map</p>
@@ -116,47 +128,56 @@ export default function WeatherMapPage() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-base sm:text-lg text-sky-100/90 leading-relaxed mb-10 max-w-xl">
+        <p className="text-base sm:text-lg text-sky-100/90 leading-relaxed mb-10 max-w-2xl">
           Explore real-time rain radar, cloud density, temperature gradients, and wind velocity overlays centered on your selected location.
         </p>
 
-        {/* City Search Form & Quick Focus */}
-        <div className="space-y-4 mb-10 max-w-xl">
-          <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Center map on any city (e.g. Mumbai, London)..."
-              className="w-full bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/15 rounded-lg py-3 pl-4 pr-28 text-sm text-white placeholder-sky-200/70 focus:outline-none focus:ring-2 focus:ring-sky-400/40 backdrop-blur-xl transition-all shadow-md"
+        {/* Cascading Country -> State -> City Dropdowns Form */}
+        <div className="space-y-4 mb-10 w-full glass-card rounded-3xl p-6 sm:p-8">
+          <form onSubmit={handleSearchSubmit} className="space-y-4">
+            <LocationSelector
+              country={location.country}
+              state={location.state}
+              city={location.city}
+              onChange={({ country, state, city }) => {
+                setLocation({ country, state, city });
+                setLocationErrors({ country: '', state: '', city: '' });
+              }}
+              errors={locationErrors}
+              layout="horizontal"
+              showLabels={true}
             />
-            <button
-              type="submit"
-              disabled={loading}
-              className="absolute right-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-md transition-colors shadow-md shadow-indigo-900/30"
-            >
-              {loading ? 'Locating...' : 'Go to City'}
-            </button>
+
+            <div className="flex items-center justify-between pt-1">
+              {errorMessage ? (
+                <p className="text-xs text-red-400 font-medium">{errorMessage}</p>
+              ) : (
+                <span className="text-xs text-sky-200/70">Select Country, State, and City to center map.</span>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-3.5 py-2 sm:px-6 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-indigo-900/40 disabled:opacity-50 whitespace-nowrap shrink-0"
+              >
+                {loading ? 'Locating...' : 'Go to City'}
+              </button>
+            </div>
           </form>
 
-          {errorMessage && (
-            <p className="text-xs text-red-400 font-medium">{errorMessage}</p>
-          )}
-
-          {/* Quick Focus Pills */}
-          <div className="flex items-center gap-2 flex-wrap text-xs text-slate-300 pt-1">
+          {/* Quick Actions / Quick Focus Pills (Desktop Only) */}
+          <div className="hidden sm:flex items-center gap-2 flex-wrap text-xs text-slate-300 pt-2 border-t border-white/10">
             <span className="text-sky-300 font-bold uppercase tracking-widest text-[11px]">
               Quick Focus:
             </span>
             {POPULAR_CITIES.map((city) => (
               <button
                 key={city}
-                onClick={() => { setSearchInput(city); fetchCityWeather(city); }}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${
-                  activeCity.toLowerCase() === city.toLowerCase()
-                    ? 'bg-indigo-600 border-indigo-500 text-white font-semibold shadow-md'
-                    : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
-                }`}
+                onClick={() => { fetchCityWeather(city); }}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${activeCity.toLowerCase() === city.toLowerCase()
+                  ? 'bg-indigo-600 border-indigo-500 text-white font-semibold shadow-md'
+                  : 'bg-white/5 border-white/10 text-sky-200 hover:bg-white/10 hover:text-white'
+                  }`}
               >
                 {city}
               </button>

@@ -11,12 +11,10 @@
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.28) 50%,
-    rgba(255, 255, 255, 0.08) 100%
-  ) !important;
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.28) 50%,
+      rgba(255, 255, 255, 0.08) 100%) !important;
   background-size: 800px 100% !important;
   animation: shimmer 1.5s infinite linear !important;
 }
@@ -71,15 +69,29 @@ body {
   opacity: 1 !important;
 }
 
-/* Fix browser autofill background on inputs to match light glass theme */
+/* Fix browser autofill background on inputs to match glass theme */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #1e3b72 inset !important;
-  box-shadow: 0 0 0 1000px #1e3b72 inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.15) inset !important;
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
   transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Custom Date Picker Indicator Styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1) brightness(1.2);
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  padding: 2px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }

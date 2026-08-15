@@ -12,6 +12,14 @@ const SubscriberSchema = new mongoose.Schema({
     lowercase: true,
     match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
   },
+  country: {
+    type: String,
+    default: '',
+  },
+  state: {
+    type: String,
+    default: '',
+  },
   city: {
     type: String,
     required: [true, 'Please provide a city.'],

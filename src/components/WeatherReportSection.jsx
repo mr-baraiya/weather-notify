@@ -1,12 +1,217 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Eye, Download, Mail, Share2, Calendar, Loader2, Check, X } from 'lucide-react';
+import { Eye, Download, Mail, Share2, Calendar, Loader2, Check, X, ChevronLeft, ChevronRight, ExternalLink, Sparkles } from 'lucide-react';
+import LocationSelector from './LocationSelector';
 
+/* ─── Custom Glassmorphism DatePicker Popover ───────────────── */
+function GlassDatePicker({ value, onChange, minDate, maxDate }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Parsed initial date or today
+  const selectedDateObj = useMemo(() => {
+    if (!value) return new Date();
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }, [value]);
+
+  const [viewDate, setViewDate] = useState(selectedDateObj);
+
+  useEffect(() => {
+    if (value) {
+      const [y, m, d] = value.split('-').map(Number);
+      setViewDate(new Date(y, m - 1, d));
+    }
+  }, [value]);
+
+  // Click outside listener
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  // Calendar Grid Math
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const prevMonthDays = [];
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    prevMonthDays.push(daysInPrevMonth - i);
+  }
+
+  const currentMonthDays = [];
+  for (let d = 1; d <= totalDaysInMonth; d++) {
+    const mStr = String(month + 1).padStart(2, '0');
+    const dStr = String(d).padStart(2, '0');
+    const isoStr = `${year}-${mStr}-${dStr}`;
+    currentMonthDays.push({ day: d, isoStr });
+  }
+
+  const handlePrevMonth = () => {
+    setViewDate(new Date(year, month - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setViewDate(new Date(year, month + 1, 1));
+  };
+
+  // Formatted date string for input display (DD - MM - YYYY)
+  const displayFormattedDate = useMemo(() => {
+    if (!value) return '';
+    const [y, m, d] = value.split('-');
+    return `${d}-${m}-${y}`;
+  }, [value]);
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  return (
+    <div ref={containerRef} className={`relative w-full sm:w-[220px] ${isOpen ? 'z-50' : 'z-10'}`}>
+      <label className="block text-[11px] font-bold text-sky-200/90 mb-1.5 flex items-center uppercase tracking-wider">
+        <Calendar className="w-3.5 h-3.5 mr-1.5 text-sky-300" />
+        REPORT DATE
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border border-white/25 rounded-xl py-3 px-3.5 text-white text-xs sm:text-sm font-mono flex items-center justify-between shadow-md focus:outline-none focus:ring-2 focus:ring-white/40 transition-all cursor-pointer select-none"
+      >
+        <span>{displayFormattedDate || 'Select Date'}</span>
+        <span className="text-white/70 text-xs ml-2">{isOpen ? '▲' : '▼'}</span>
+      </button>
+
+      {/* Sleek Custom Glassmorphism Calendar Popover */}
+      {isOpen && (
+        <div
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="absolute top-full left-0 mt-2 z-[100] w-72 bg-slate-900/95 border border-white/20 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 text-white text-sans overflow-hidden animate-fade-in"
+        >
+          {/* Header Month Year & Prev / Next */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <span className="font-bold text-sm text-sky-100 tracking-wide">
+              {monthNames[month]}, {year}
+            </span>
+            <div className="flex items-center space-x-1">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg hover:bg-white/15 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Previous Month"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg hover:bg-white/15 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Next Month"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 gap-1 text-center mb-2">
+            {daysOfWeek.map((d) => (
+              <span key={d} className="text-[11px] font-bold text-sky-300/80 uppercase">
+                {d}
+              </span>
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {/* Previous Month Padding Days */}
+            {prevMonthDays.map((d, i) => (
+              <span key={'prev-' + i} className="py-2 text-slate-600 select-none opacity-40">
+                {d}
+              </span>
+            ))}
+
+            {/* Current Month Days */}
+            {currentMonthDays.map(({ day, isoStr }) => {
+              const isSelected = isoStr === value;
+              const isToday = isoStr === todayIso;
+              const isDisabled = (minDate && isoStr < minDate) || (maxDate && isoStr > maxDate);
+
+              return (
+                <button
+                  key={isoStr}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => {
+                    onChange(isoStr);
+                    setIsOpen(false);
+                  }}
+                  className={`py-2 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center relative ${isSelected
+                      ? 'bg-gradient-to-r from-indigo-600 to-sky-500 text-white font-bold shadow-lg shadow-indigo-500/40 scale-105'
+                      : isDisabled
+                        ? 'text-slate-600 opacity-30 cursor-not-allowed'
+                        : isToday
+                          ? 'bg-white/10 text-sky-200 border border-sky-400/50 font-bold hover:bg-white/20'
+                          : 'text-slate-200 hover:bg-white/15 hover:text-white'
+                    }`}
+                >
+                  {day}
+                  {isToday && !isSelected && (
+                    <span className="absolute bottom-1 w-1 h-1 bg-sky-400 rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom Action Footer */}
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/10 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                onChange(todayIso);
+                setViewDate(new Date());
+                setIsOpen(false);
+              }}
+              className="text-sky-300 hover:text-white transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/10"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/10"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main WeatherReportSection Component ───────────────────── */
 export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
   const [mounted, setMounted] = useState(false);
-  const [cityInput, setCityInput] = useState(initialCity);
+  const [location, setLocation] = useState({ country: 'IN', state: '', city: '' });
+  const [locationErrors, setLocationErrors] = useState({ country: '', state: '', city: '' });
   const todayObj = new Date();
   const todayStr = todayObj.toISOString().split('T')[0];
 
@@ -41,48 +246,69 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const fetchReportJson = async () => {
-    const res = await fetch(`/api/weather/report?city=${encodeURIComponent(cityInput)}&date=${selectedDate}&format=json`);
-    const data = await res.json();
-    if (data.success && data.data) {
-      return data.data;
-    }
-    throw new Error(data.message || 'Could not fetch weather report data.');
+  const validateLocation = () => {
+    let hasErr = false;
+    const errors = { country: '', state: '', city: '' };
+    if (!location.country) { errors.country = 'Country is Required'; hasErr = true; }
+    if (!location.state) { errors.state = 'State is Required'; hasErr = true; }
+    if (!location.city) { errors.city = 'City is Required'; hasErr = true; }
+
+    setLocationErrors(errors);
+    return !hasErr;
   };
 
-  // 1. Action: View Report (Open Modal Preview)
-  const handleViewReport = async () => {
+  const fetchReport = async () => {
+    if (!validateLocation()) return null;
     setLoading(true);
     try {
-      const data = await fetchReportJson();
-      setReportData(data);
-      setPreviewModalOpen(true);
+      const res = await fetch(`/api/weather/report?city=${encodeURIComponent(location.city)}&state=${encodeURIComponent(location.state || '')}&country=${encodeURIComponent(location.country || '')}&date=${selectedDate}&format=json`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to fetch report data');
+      }
+      const actualReport = data.data || data;
+      setReportData(actualReport);
+      return actualReport;
     } catch (err) {
-      alert(err.message || 'Error loading report preview.');
+      showToast(err.message || 'Error fetching report');
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. Action: Download PDF
-  const handleDownloadPdf = async () => {
+  const handleViewReport = async () => {
+    if (!validateLocation()) return;
+    setPreviewModalOpen(true);
+    await fetchReport();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!validateLocation()) return;
     setDownloading(true);
     try {
-      const pdfUrl = `/api/weather/report?city=${encodeURIComponent(cityInput)}&date=${selectedDate}&format=pdf`;
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Weather-Report-${cityInput}-${selectedDate}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const pdfUrl = `/api/weather/report?city=${encodeURIComponent(location.city)}&state=${encodeURIComponent(location.state || '')}&country=${encodeURIComponent(location.country || '')}&date=${selectedDate}&format=pdf`;
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `weather-report-${location.city.toLowerCase()}-${selectedDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('PDF downloaded successfully!');
     } catch (err) {
-      alert('Failed to download PDF.');
+      showToast(err.message || 'Error downloading PDF');
     } finally {
-      setTimeout(() => setDownloading(false), 1000);
+      setDownloading(false);
     }
   };
 
-  // 3. Action: Email Report
   const handleSendEmail = async (e) => {
     e.preventDefault();
     if (!emailAddress) return;
@@ -91,32 +317,37 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
       const res = await fetch('/api/weather/report/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, city: cityInput, date: selectedDate }),
+        body: JSON.stringify({
+          email: emailAddress,
+          city: location.city,
+          date: selectedDate,
+        }),
       });
       const data = await res.json();
-      if (data.success) {
-        showToast('Report sent to your email!');
-        setEmailModalOpen(false);
-      } else {
-        alert(data.message || 'Could not send report email.');
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send email');
       }
+      showToast('Report sent to ' + emailAddress);
+      setEmailModalOpen(false);
+      setEmailAddress('');
     } catch (err) {
-      alert('Error sending email.');
+      showToast(err.message || 'Error sending email');
     } finally {
       setEmailSending(false);
     }
   };
 
-  // 4. Action: Share Report
-  const handleShareReport = async () => {
-    const slug = cityInput.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-') || 'default';
-    const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/reports/${slug}/${selectedDate}`;
-    const shareTitle = `Today's Weather Report — ${cityInput}`;
+  const handleShare = async () => {
+    if (!validateLocation()) return;
+    const shareUrl = `${window.location.origin}/reports/${encodeURIComponent(location.city.toLowerCase())}/${selectedDate}`;
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: shareTitle, url: shareUrl });
+        await navigator.share({
+          title: `Weather Report - ${location.city} (${selectedDate})`,
+          text: `Check out today's weather report for ${location.city}`,
+          url: shareUrl,
+        });
         return;
       } catch (err) {
         // Fallback to clipboard
@@ -131,10 +362,40 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
     }
   };
 
+  if (!mounted) {
+    return (
+      <div className="glass-card rounded-2xl md:rounded-4xl p-4 sm:p-6 md:p-8 max-w-6xl mx-auto text-white my-8 font-sans relative text-left overflow-visible animate-pulse">
+        <div className="mb-6 space-y-2">
+          <div className="h-6 w-48 bg-white/10 rounded-md" />
+          <div className="h-3.5 w-3/4 max-w-lg bg-white/10 rounded-md" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="h-12 bg-white/10 rounded-xl" />
+          <div className="h-12 bg-white/10 rounded-xl" />
+          <div className="h-12 bg-white/10 rounded-xl" />
+        </div>
+
+        <div className="h-10 w-44 bg-white/10 rounded-xl mb-6" />
+
+        <div className="grid grid-cols-4 sm:flex sm:items-center gap-2 sm:gap-3 mb-6">
+          <div className="h-10 sm:w-28 bg-white/10 rounded-xl" />
+          <div className="h-10 sm:w-32 bg-white/10 rounded-xl" />
+          <div className="h-10 sm:w-28 bg-white/10 rounded-xl" />
+          <div className="h-10 sm:w-28 bg-white/10 rounded-xl" />
+        </div>
+
+        <div className="pt-4 border-t border-white/10 space-y-2">
+          <div className="h-4 w-48 bg-white/10 rounded" />
+          <div className="h-3 w-full bg-white/5 rounded" />
+          <div className="h-3 w-4/5 bg-white/5 rounded" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section
-      className="glass-card md:rounded-3xl md:p-8 max-w-6xl mx-4 sm:mx-6 lg:mx-auto text-white mt-8 sm:mt-12 mb-16 sm:mb-20 font-sans overflow-hidden py-4 px-2 relative text-left"
-    >
+    <section id="weather-report" className="glass-card rounded-2xl md:rounded-4xl p-4 sm:p-6 md:p-8 max-w-6xl mx-auto text-white my-8 font-sans relative text-left overflow-visible">
       {/* Toast Notification (Portal) */}
       {mounted && toastMessage && createPortal(
         <div
@@ -152,273 +413,407 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
         document.body
       )}
 
-      {/* Title & Subtitle */}
-      <div className="max-w-2xl mb-6 space-y-1">
-        <h2 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-200 via-sky-100 to-white bg-clip-text text-transparent border-l-2 border-sky-400 pl-3 py-0.5">
-          Daily Weather Report
+      {/* Header Title */}
+      <div className="mb-6 space-y-1">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white border-l-2 border-slate-400 pl-3 py-0.5">
+          Daily Weather Bulletin
         </h2>
-        <p className="text-xs sm:text-sm text-slate-200/90 pl-3.5">
-          Get today's complete weather summary in a clean, professional one-page report.
+        <p className="text-xs sm:text-sm text-slate-300 pl-3.5">
+          Get instant, comprehensive daily weather bulletins and downloadable 1-page A4 PDF summaries tailored for your specific city and date.
         </p>
       </div>
 
-      {/* Controls: City & Date Selector */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-md">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-sky-200/90 mb-1">CITY LOCATION</label>
-          <input
-            type="text"
-            value={cityInput}
-            onChange={(e) => setCityInput(e.target.value)}
-            placeholder="Enter city (e.g. Rajkot)"
-            className="w-full px-3.5 py-2 bg-white/10 border border-white/20 rounded-lg text-xs sm:text-sm text-white placeholder-sky-200/50 focus:outline-none focus:border-sky-400 focus:bg-white/15 font-mono"
-          />
-        </div>
+      {/* Controls Container */}
+      <div className="space-y-4 mb-6 relative z-30">
+        <LocationSelector
+          country={location.country}
+          state={location.state}
+          city={location.city}
+          onChange={({ country, state, city }) => {
+            setLocation({ country, state, city });
+            setLocationErrors({ country: '', state: '', city: '' });
+          }}
+          errors={locationErrors}
+          layout="horizontal"
+          showLabels={true}
+        />
 
-        <div className="w-[180px]">
-          <label className="block text-xs font-medium text-sky-200/90 mb-1 flex items-center">
-            <Calendar className="w-3.5 h-3.5 mr-1 text-sky-300" />
-            REPORT DATE
-          </label>
-          <input
-            type="date"
-            min={minDateStr}
-            max={maxDateStr}
+        <div className="flex items-center justify-between pt-3 border-t border-white/10 relative z-30">
+          <GlassDatePicker
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-xs sm:text-sm text-white focus:outline-none focus:border-sky-400 focus:bg-white/15 font-mono [color-scheme:dark]"
+            onChange={(d) => setSelectedDate(d)}
+            minDate={minDateStr}
+            maxDate={maxDateStr}
           />
         </div>
       </div>
 
       {/* Action Row */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="grid grid-cols-4 sm:flex sm:items-center gap-2 sm:gap-3 mb-6">
         <button
           onClick={handleViewReport}
           disabled={loading}
+          suppressHydrationWarning
           title="View Report"
-          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/20 transition-all backdrop-blur-md disabled:opacity-50"
+          aria-label="View Report"
+          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/10 transition-all backdrop-blur-md disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin text-sky-300" /> : <Eye className="w-4 h-4 sm:mr-2 text-sky-300" />}
+          {loading ? (
+            <Loader2 className="w-4 h-4 shrink-0 sm:mr-2 animate-spin text-slate-300" />
+          ) : (
+            <Eye className="w-4 h-4 shrink-0 sm:mr-2 text-slate-300" />
+          )}
           <span className="hidden sm:inline">View Report</span>
         </button>
 
         <button
-          onClick={handleDownloadPdf}
+          onClick={handleDownloadPDF}
           disabled={downloading}
+          suppressHydrationWarning
           title="Download PDF"
-          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-blue-600/30 transition-all disabled:opacity-50"
+          aria-label="Download PDF"
+          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/10 transition-all backdrop-blur-md disabled:opacity-50"
         >
-          {downloading ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin text-white" /> : <Download className="w-4 h-4 sm:mr-2" />}
+          {downloading ? (
+            <Loader2 className="w-4 h-4 shrink-0 sm:mr-2 animate-spin text-slate-300" />
+          ) : (
+            <Download className="w-4 h-4 shrink-0 sm:mr-2 text-slate-300" />
+          )}
           <span className="hidden sm:inline">Download PDF</span>
         </button>
 
         <button
-          onClick={() => setEmailModalOpen(true)}
+          onClick={() => {
+            if (validateLocation()) setEmailModalOpen(true);
+          }}
+          suppressHydrationWarning
           title="Email Report"
-          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/20 transition-all backdrop-blur-md"
+          aria-label="Email Report"
+          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/10 transition-all backdrop-blur-md"
         >
-          <Mail className="w-4 h-4 sm:mr-2 text-slate-200" />
+          <Mail className="w-4 h-4 shrink-0 sm:mr-2 text-slate-300" />
           <span className="hidden sm:inline">Email Report</span>
         </button>
 
         <button
-          onClick={handleShareReport}
+          onClick={handleShare}
+          suppressHydrationWarning
           title="Share Report"
-          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/20 transition-all backdrop-blur-md"
+          aria-label="Share Report"
+          className="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold border border-white/10 transition-all backdrop-blur-md"
         >
-          <Share2 className="w-4 h-4 sm:mr-2 text-slate-200" />
+          <Share2 className="w-4 h-4 shrink-0 sm:mr-2 text-slate-300" />
           <span className="hidden sm:inline">Share Report</span>
         </button>
       </div>
 
-      {/* IN-APP REPORT PREVIEW MODAL (PORTAL) */}
-      {mounted && previewModalOpen && reportData && createPortal(
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div
-            style={{
-              background: 'rgba(15, 23, 42, 0.95)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
-            }}
-            className="text-white rounded-2xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl relative max-h-[85vh] overflow-y-auto text-left [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+      {/* Why Daily Weather Reports Matter */}
+      <div className="pt-4 border-t border-white/10 space-y-1.5 mb-6">
+        <h4 className="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider">
+          Why Daily Weather Reports Matter
+        </h4>
+        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+          Whether you are planning travel, scheduling outdoor work, organizing events, or monitoring daily agricultural activities, having a clear and verifiable weather bulletin gives you the exact insight you need. Our reports compile accurate hourly forecasts, air quality index details, sunrise and sunset schedules, and severe weather warnings into an easy-to-read layout.
+        </p>
+      </div>
+
+      {/* Preview Modal */}
+      {previewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 md:p-6 animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 rounded-2xl sm:rounded-3xl max-w-5xl w-full h-[92vh] sm:h-[90vh] flex flex-col shadow-2xl overflow-hidden text-left backdrop-blur-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-900/90">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Weather Notify · Official Bulletin Preview</span>
-                <h3 className="text-xl font-extrabold text-white mt-0.5">{reportData.city}{reportData.state ? `, ${reportData.state}` : ''}</h3>
-                <p className="text-xs text-slate-300 mt-0.5">{reportData.dateStr}</p>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Official Weather Bulletin</span>
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 text-sky-400 shrink-0" />
+                  {reportData ? `${reportData.city}${reportData.state ? `, ${reportData.state}` : ''}${reportData.countryName ? `, ${reportData.countryName}` : (reportData.country ? `, ${reportData.country}` : '')} (${reportData.dateStr || reportData.date || selectedDate})` : 'Loading Weather Bulletin...'}
+                </h3>
               </div>
-              <button onClick={() => setPreviewModalOpen(false)} className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Overview Grid */}
-            <div className="mb-6">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-sky-200/90 mb-3 border-l-2 border-sky-400 pl-2">Today's Weather</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Condition</span>
-                  <span className="text-sm font-extrabold text-white">{reportData.condition}</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Temperature</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.low}°C – {reportData.high}°C</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Feels Like</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.feelsLike}°C</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Humidity</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.humidity}%</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Wind</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.windKmh} km/h</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Rain Chance</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.pop}%</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">Visibility</span>
-                  <span className="text-sm font-extrabold text-white font-mono">{reportData.visibilityKm} km</span>
-                </div>
-                <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
-                  <span className="block text-[10px] font-medium text-sky-200/80 uppercase">AQI Index</span>
-                  <span className="text-sm font-extrabold text-white font-mono">Level {reportData.aqi}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="mb-6">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-sky-200/90 mb-2 border-l-2 border-sky-400 pl-2">Weather Summary</h4>
-              <div className="bg-blue-950/60 border border-blue-800/60 rounded-xl p-4 text-xs sm:text-sm text-sky-100 leading-relaxed font-medium">
-                {reportData.summary}
-              </div>
-            </div>
-
-            {/* Hourly Table */}
-            <div className="mb-6">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-sky-200/90 mb-3 border-l-2 border-sky-400 pl-2">Hourly Forecast</h4>
-              <div className="overflow-x-auto border border-white/10 rounded-xl">
-                <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
-                      <th className="p-3 font-mono">Time</th>
-                      <th className="p-3 font-mono">Temp</th>
-                      <th className="p-3">Condition</th>
-                      <th className="p-3 text-right font-mono hidden sm:table-cell">Rain Chance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
-                    {reportData.hourly?.map((h, i) => (
-                      <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
-                        <td className="p-3">{h.time}</td>
-                        <td className="p-3 font-bold text-white">{h.temp}°C</td>
-                        <td className="p-3 font-sans font-medium text-slate-200">{h.condition}</td>
-                        <td className="p-3 text-right font-bold text-sky-300 hidden sm:table-cell">{h.pop}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* 5-Day Outlook Table */}
-            {reportData.forecast && reportData.forecast.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-sky-200/90 mb-3 border-l-2 border-sky-400 pl-2">5-Day Outlook</h4>
-                <div className="overflow-x-auto border border-white/10 rounded-xl">
-                  <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-white/10 text-sky-200 font-semibold border-b border-white/10">
-                        <th className="py-2.5 px-2.5 sm:p-3 font-mono whitespace-nowrap">Day & Date</th>
-                        <th className="py-2.5 px-2.5 sm:p-3 font-mono whitespace-nowrap">Temp Range</th>
-                        <th className="py-2.5 px-2.5 sm:p-3 whitespace-nowrap">Condition</th>
-                        <th className="py-2.5 px-2.5 sm:p-3 text-right font-mono whitespace-nowrap hidden sm:table-cell">Rain Chance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10 text-slate-100 font-mono">
-                      {reportData.forecast.map((f, i) => (
-                        <tr key={i} className={i % 2 === 1 ? 'bg-white/5' : 'bg-transparent'}>
-                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap">
-                            <span className="block font-bold text-white">{f.day}</span>
-                            {f.date && <span className="block text-[10px] text-sky-200/70 font-medium mt-0.5">{f.date}</span>}
-                          </td>
-                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap font-semibold text-slate-200">{f.min}°C – {f.max}°C</td>
-                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap font-sans font-medium text-slate-200">{f.condition}</td>
-                          <td className="py-2.5 px-2.5 sm:p-3 align-middle whitespace-nowrap text-right font-bold text-sky-300 hidden sm:table-cell">{f.pop}%</td>
-                        </tr>
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {loading || !reportData ? (
+                /* Skeleton Loading View */
+                <div className="space-y-6 animate-pulse">
+                  <div>
+                    <div className="h-4 w-32 bg-white/10 rounded mb-3" />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[...Array(8)].map((_, i) => (
+                        <div key={i} className="bg-white/5 border border-white/10 p-3 rounded-xl h-16 flex flex-col justify-between">
+                          <div className="h-2.5 w-16 bg-white/10 rounded" />
+                          <div className="h-4 w-24 bg-white/20 rounded" />
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                    </div>
+                  </div>
 
-            {/* Modal Actions Footer */}
-            <div className="pt-4 border-t border-white/10 flex items-center justify-end space-x-3">
-              <button onClick={() => setPreviewModalOpen(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-semibold text-white transition-colors flex items-center space-x-1.5">
-                <X className="w-4 h-4" />
-                <span className="hidden sm:inline">Close Preview</span>
+                  <div>
+                    <div className="h-4 w-36 bg-white/10 rounded mb-2" />
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 h-20 flex flex-col justify-center space-y-2">
+                      <div className="h-3 w-full bg-white/10 rounded" />
+                      <div className="h-3 w-3/4 bg-white/10 rounded" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-4 w-32 bg-white/10 rounded mb-3" />
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 h-36 flex flex-col justify-between">
+                      <div className="h-4 w-full bg-white/10 rounded" />
+                      <div className="h-3 w-full bg-white/5 rounded" />
+                      <div className="h-3 w-full bg-white/5 rounded" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-4 w-32 bg-white/10 rounded mb-3" />
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 h-36 flex flex-col justify-between">
+                      <div className="h-4 w-full bg-white/10 rounded" />
+                      <div className="h-3 w-full bg-white/5 rounded" />
+                      <div className="h-3 w-full bg-white/5 rounded" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="h-4 w-36 bg-white/10 rounded mb-3" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="bg-white/5 border border-white/10 p-3.5 rounded-xl h-16 flex flex-col justify-between">
+                          <div className="h-2.5 w-14 bg-white/10 rounded" />
+                          <div className="h-4 w-20 bg-white/20 rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Today's Weather Overview Grid */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 border-l-2 border-slate-400 pl-2">Today's Weather</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Condition</p>
+                        <p className="text-sm font-semibold text-white mt-0.5 capitalize">{reportData.condition || 'Clear'}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Temperature</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">
+                          {reportData.low !== undefined ? `${reportData.low}°C – ${reportData.high}°C` : `${reportData.temp || 30}°C`}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Feels Like</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.feelsLike !== undefined ? `${reportData.feelsLike}°C` : `${reportData.temp || 30}°C`}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Humidity</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.humidity || 60}%</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Wind Speed</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.windKmh || 15} km/h</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Rain Chance</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.pop || 0}%</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Visibility</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.visibilityKm || '10.0'} km</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">AQI Index</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">Level {reportData.aqi || 1}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weather Summary Tip */}
+                  {reportData.summary && (
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 border-l-2 border-slate-400 pl-2">Weather Summary</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-xs sm:text-sm text-slate-200 leading-relaxed font-normal">
+                        {reportData.summary}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Weather Alerts & Advisory */}
+                  {reportData.alertAdvisory && (
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 border-l-2 border-slate-400 pl-2">Weather Advisory</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-xs sm:text-sm text-slate-200 leading-relaxed font-normal">
+                        <span className="font-semibold text-white">Notice: </span>
+                        {reportData.alertAdvisory}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hourly Forecast Table */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 border-l-2 border-slate-400 pl-2">Hourly Forecast</h4>
+                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-white/5 text-slate-300">
+                          <tr>
+                            <th className="p-2.5 font-semibold">Time</th>
+                            <th className="p-2.5 font-semibold">Temp</th>
+                            <th className="p-2.5 font-semibold">Condition</th>
+                            <th className="p-2.5 text-right font-semibold">Rain Chance</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/10 text-slate-200">
+                          {((reportData.hourly && reportData.hourly.length > 0)
+                            ? reportData.hourly
+                            : [{ time: 'Current', temp: reportData.temp, condition: reportData.condition, pop: reportData.pop }]
+                          ).map((h, i) => (
+                            <tr key={i} className="hover:bg-white/5">
+                              <td className="p-2.5 font-mono">{h.time || h.hour || '12:00 PM'}</td>
+                              <td className="p-2.5 font-semibold text-white">{h.temp !== undefined ? h.temp : (reportData.temp || 30)}°C</td>
+                              <td className="p-2.5 capitalize font-normal text-slate-200">{h.condition || reportData.condition || 'Clear'}</td>
+                              <td className="p-2.5 text-right font-semibold text-slate-300">{h.pop !== undefined ? h.pop : (reportData.pop || 0)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 5-Day Outlook Table */}
+                  {reportData.forecast && reportData.forecast.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 border-l-2 border-slate-400 pl-2">5-Day Outlook</h4>
+                      <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-white/5 text-slate-300">
+                            <tr>
+                              <th className="p-2.5 font-semibold">Day & Date</th>
+                              <th className="p-2.5 font-semibold">Temp Range</th>
+                              <th className="p-2.5 font-semibold">Condition</th>
+                              <th className="p-2.5 text-right font-semibold">Rain Chance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/10 text-slate-200">
+                            {reportData.forecast.map((f, i) => (
+                              <tr key={i} className="hover:bg-white/5">
+                                <td className="p-2.5">
+                                  <span className="font-semibold text-white block">{f.day}</span>
+                                  {f.date && <span className="text-[10px] text-slate-400 font-normal">{f.date}</span>}
+                                </td>
+                                <td className="p-2.5 font-medium text-slate-200">{f.min}°C – {f.max}°C</td>
+                                <td className="p-2.5 capitalize font-normal text-slate-200">{f.condition}</td>
+                                <td className="p-2.5 text-right font-semibold text-slate-300">{f.pop}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sun & Air Details */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 border-l-2 border-slate-400 pl-2">Sun & Air Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Sunrise</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.sunriseStr || '04:41 AM'}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Sunset</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.sunsetStr || '05:50 PM'}</p>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-xl">
+                        <p className="text-[10px] font-medium text-slate-400 uppercase">Air Quality</p>
+                        <p className="text-sm font-semibold text-white font-mono mt-0.5">{reportData.aqiText || `Level ${reportData.aqi || 1} — Good`}</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer with Actions */}
+            <div className="p-4 border-t border-white/10 flex items-center justify-end space-x-2 bg-slate-900/90">
+              <button
+                onClick={() => {
+                  setPreviewModalOpen(false);
+                  handleDownloadPDF();
+                }}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition-colors flex items-center"
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                Download PDF
               </button>
-              <button onClick={handleDownloadPdf} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center space-x-1.5">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Download A4 PDF</span>
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold border border-white/10 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
-      {/* EMAIL PROMPT MODAL (PORTAL) */}
-      {mounted && emailModalOpen && createPortal(
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div
-            style={{
-              background: 'rgba(15, 23, 42, 0.95)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)',
-            }}
-            className="text-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-left"
-          >
-            <h3 className="text-lg font-bold text-white">Email Weather Report</h3>
-            <p className="text-xs text-slate-300 mt-1 mb-4">Send the 1-page A4 PDF report for {cityInput} directly to your inbox.</p>
+      {/* Email Modal */}
+      {emailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-white/20 rounded-2xl max-w-md w-full p-6 shadow-2xl text-left">
+            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center">
+                <Mail className="w-4 h-4 mr-2 text-sky-400" />
+                Email Weather Report
+              </h3>
+              <button
+                onClick={() => setEmailModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-sky-200/90 mb-1">EMAIL ADDRESS</label>
+                <label className="block text-xs text-sky-200 font-semibold uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   required
-                  placeholder="yourname@example.com"
+                  placeholder="name@example.com"
                   value={emailAddress}
                   onChange={(e) => setEmailAddress(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-white/10 border border-white/20 rounded-xl text-xs sm:text-sm text-white placeholder-sky-200/50 focus:outline-none focus:border-sky-400 font-mono"
+                  className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/50 focus:outline-none focus:border-sky-400"
                 />
               </div>
-              <div className="flex items-center justify-end space-x-2">
-                <button type="button" onClick={() => setEmailModalOpen(false)} className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-semibold text-white transition-colors">
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailModalOpen(false)}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold border border-white/10 transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={emailSending} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center space-x-1.5">
-                  {emailSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  <span>{emailSending ? 'Sending...' : 'Send Report'}</span>
+                <button
+                  type="submit"
+                  disabled={emailSending}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  {emailSending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                  Send Email
                 </button>
               </div>
             </form>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </section>
   );

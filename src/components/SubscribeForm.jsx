@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { User, MapPin, Phone, Mail } from 'lucide-react';
+import { User, Phone, Mail } from 'lucide-react';
 import WhatsAppModal from './WhatsAppModal';
+import LocationSelector from './LocationSelector';
+
+const formatCallingCode = (code) => {
+  if (!code) return '+91';
+  const digits = code.toString().replace(/\+/g, '').trim();
+  return digits ? `+${digits}` : '+91';
+};
 
 const SubscribeForm = () => {
-  const [formData, setFormData] = useState({ name: '', city: '', phone: '', email: '' });
+  const [formData, setFormData] = useState({ name: '', country: 'IN', state: '', city: '', phone: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [whatsappSetup, setWhatsappSetup] = useState(null);
-  const [formErrors, setFormErrors] = useState({ name: '', city: '', phone: '', email: '' });
+  const [formErrors, setFormErrors] = useState({ name: '', country: '', state: '', city: '', phone: '', email: '' });
   const [checkingPhone, setCheckingPhone] = useState(false);
   const [phoneExists, setPhoneExists] = useState(false);
   const [callingCode, setCallingCode] = useState('+91');
@@ -23,7 +30,7 @@ const SubscribeForm = () => {
       try {
         const response = await axios.get(`/api/geo/calling-code?lat=${coords.latitude}&lon=${coords.longitude}`);
         if (!canceled && response.data?.success && response.data.data?.callingCode) {
-          setCallingCode(response.data.data.callingCode);
+          setCallingCode(formatCallingCode(response.data.data.callingCode));
         }
       } catch (error) {
         if (!canceled) {
@@ -86,7 +93,7 @@ const SubscribeForm = () => {
     setPhoneExists(false);
 
     try {
-      const fullPhone = `${callingCode}${formData.phone}`;
+      const fullPhone = `${formatCallingCode(callingCode)}${formData.phone}`;
       const checkResponse = await axios.get(`/api/subscribe/check?phone=${encodeURIComponent(fullPhone)}`);
       if (checkResponse.data.exists) {
         setPhoneExists(true);
@@ -105,15 +112,17 @@ const SubscribeForm = () => {
 
     // Custom Validation
     let hasError = false;
-    const errors = { name: '', city: '', phone: '', email: '' };
+    const errors = { name: '', country: '', state: '', city: '', phone: '', email: '' };
 
     if (!formData.name.trim()) { errors.name = 'Name is Required'; hasError = true; }
-    if (!formData.city.trim()) { errors.city = 'City is Required'; hasError = true; }
     if (!formData.email.trim()) {
       errors.email = 'Email is Required'; hasError = true;
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
       errors.email = 'Invalid email'; hasError = true;
     }
+    if (!formData.country) { errors.country = 'Country is Required'; hasError = true; }
+    if (!formData.state) { errors.state = 'State is Required'; hasError = true; }
+    if (!formData.city) { errors.city = 'City is Required'; hasError = true; }
     if (!formData.phone) {
       errors.phone = 'Phone is Required'; hasError = true;
     } else if (!/^\d{10}$/.test(formData.phone)) {
@@ -127,6 +136,8 @@ const SubscribeForm = () => {
     setMessage('');
     setWhatsappSetup(null);
 
+    const activeCallingCode = formatCallingCode(callingCode);
+
     if (phoneExists) {
       setMessage('This phone number is already subscribed.');
       setLoading(false);
@@ -134,7 +145,7 @@ const SubscribeForm = () => {
     }
 
     try {
-      const fullPhone = `${callingCode}${formData.phone}`;
+      const fullPhone = `${activeCallingCode}${formData.phone}`;
       const checkResponse = await axios.get(`/api/subscribe/check?phone=${encodeURIComponent(fullPhone)}`);
       if (checkResponse.data.exists) {
         setPhoneExists(true);
@@ -151,7 +162,7 @@ const SubscribeForm = () => {
       if (response.data.success) {
         setMessage('Subscription successful! Complete the WhatsApp connection in the popup.');
         setWhatsappSetup(response.data.whatsappSetup || null);
-        setFormData({ name: '', city: '', phone: '', email: '' });
+        setFormData({ name: '', country: 'IN', state: '', city: '', phone: '', email: '' });
       } else {
         setMessage(response.data.message || 'Subscription failed. Please try again.');
       }
@@ -167,10 +178,13 @@ const SubscribeForm = () => {
     }
   };
 
+  const currentCode = formatCallingCode(callingCode);
+  const leftPaddingPx = 44 + currentCode.length * 9 + 4;
+
   return (
     <div id="subscribe-form" className="glass-card md:rounded-4xl md:p-8 p-4 w-full h-full min-h-[380px] flex flex-col justify-between">
       <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 text-white">Subscribe for Alerts</h3>
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate suppressHydrationWarning>
         <div>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
@@ -180,6 +194,7 @@ const SubscribeForm = () => {
               placeholder="Name"
               value={formData.name}
               onChange={handleChange}
+              suppressHydrationWarning
               className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.name ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
           </div>
@@ -195,30 +210,34 @@ const SubscribeForm = () => {
               placeholder="Email Address"
               value={formData.email}
               onChange={handleChange}
+              suppressHydrationWarning
               className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.email ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
           </div>
           {formErrors.email && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.email}</p>}
         </div>
 
-        <div>
-          <div className="relative">
-            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
-            <input
-              type="text"
-              name="city"
-              placeholder="City"
-              value={formData.city}
-              onChange={handleChange}
-              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.city ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-12 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
-            />
-          </div>
-          {formErrors.city && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.city}</p>}
-        </div>
+        <LocationSelector
+          country={formData.country}
+          state={formData.state}
+          city={formData.city}
+          onChange={({ country, state, city, phonecode }) => {
+            setFormData(prev => ({ ...prev, country, state, city }));
+            setFormErrors(prev => ({ ...prev, country: '', state: '', city: '' }));
+            if (phonecode) {
+              setCallingCode(formatCallingCode(phonecode));
+            }
+          }}
+          errors={{ country: formErrors.country, state: formErrors.state, city: formErrors.city }}
+          layout="vertical"
+        />
 
         <div>
           <div className="relative">
             <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/90" size={18} />
+            <span className="absolute left-11 top-1/2 -translate-y-1/2 text-sm text-white/90 font-medium select-none pointer-events-none">
+              {currentCode}
+            </span>
             <input
               type="tel"
               name="phone"
@@ -229,11 +248,10 @@ const SubscribeForm = () => {
               inputMode="numeric"
               pattern="\d{10}"
               maxLength={10}
-              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.phone ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pl-20 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
+              style={{ paddingLeft: `${leftPaddingPx}px` }}
+              suppressHydrationWarning
+              className={`w-full bg-white/15 hover:bg-white/20 focus:bg-white/25 border ${formErrors.phone ? 'border-red-400' : 'border-white/25'} rounded-xl py-3 pr-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/40 transition-all`}
             />
-            <span className="absolute left-11 top-1/2 -translate-y-1/2 text-sm text-white/90 font-medium">
-              {callingCode}
-            </span>
           </div>
           {formErrors.phone && <p className="text-xs text-red-300 font-medium mt-1.5 ml-1 text-left">{formErrors.phone}</p>}
         </div>
@@ -244,6 +262,7 @@ const SubscribeForm = () => {
         <button
           type="submit"
           disabled={loading || checkingPhone || phoneExists}
+          suppressHydrationWarning
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors duration-300 disabled:bg-gray-500"
         >
           {loading ? 'Subscribing...' : checkingPhone ? 'Checking number...' : 'Subscribe for Alerts'}

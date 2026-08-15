@@ -43,8 +43,11 @@ export async function POST(request) {
   try {
     const { username, email, password } = await request.json();
 
-    if (!username || !password) {
-      return json({ success: false, message: 'Username and password are required.' }, 400);
+    if (!username || !email || !password) {
+      return json({ success: false, message: 'Username, email, and password are required.' }, 400);
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      return json({ success: false, message: 'Please provide a valid email address.' }, 400);
     }
     if (password.length < 6) {
       return json({ success: false, message: 'Password must be at least 6 characters.' }, 400);
@@ -53,7 +56,7 @@ export async function POST(request) {
     await connectToDatabase();
 
     const cleanUsername = username.trim().toLowerCase();
-    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    const cleanEmail = email.trim().toLowerCase();
 
     const exists = await AdminUser.findOne({ username: cleanUsername });
     if (exists) {

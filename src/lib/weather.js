@@ -3,6 +3,14 @@ import axios from 'axios';
 const API_KEY = process.env.OPENWEATHER_API_KEY;
 const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
+export const cleanCityQuery = (cityStr = '') => {
+  if (!cityStr) return '';
+  let cleaned = cityStr.toString().trim();
+  cleaned = cleaned.replace(/^(Bashkia|Municipality of|City of|District of|County of|Town of|Village of|Komuna|Opština|Gemeinde|Prefecture of|District|Municipality)\s+/i, '');
+  cleaned = cleaned.replace(/\s+(Municipality|District|County|Prefecture|Division|Province)$/i, '');
+  return cleaned.trim() || cityStr;
+};
+
 export const getWeather = async (query) => {
   const params = {
     appid: API_KEY,
@@ -10,24 +18,45 @@ export const getWeather = async (query) => {
   };
 
   let label = 'unknown location';
+  let primaryQuery = '';
+  let fallbackQuery = '';
 
   if (typeof query === 'string') {
-    params.q = query;
-    label = query;
+    primaryQuery = cleanCityQuery(query);
+    fallbackQuery = query;
+    label = primaryQuery;
   } else if (query && typeof query === 'object') {
-    const { city, lat, lon } = query;
+    const { city, country, lat, lon } = query;
     if (lat !== undefined && lon !== undefined) {
       params.lat = lat;
       params.lon = lon;
       label = `${lat}, ${lon}`;
     } else if (city) {
-      params.q = city;
-      label = city;
+      const cleaned = cleanCityQuery(city);
+      primaryQuery = country ? `${cleaned},${country}` : cleaned;
+      fallbackQuery = city;
+      label = primaryQuery;
     }
   }
 
-  if (!params.q && (params.lat === undefined || params.lon === undefined)) {
+  if (!primaryQuery && !params.q && (params.lat === undefined || params.lon === undefined)) {
     throw new Error('City or coordinates are required');
+  }
+
+  if (primaryQuery) {
+    try {
+      const response = await axios.get(API_URL, { params: { ...params, q: primaryQuery } });
+      return response.data;
+    } catch (primaryErr) {
+      if (fallbackQuery && fallbackQuery !== primaryQuery) {
+        try {
+          const fallbackRes = await axios.get(API_URL, { params: { ...params, q: fallbackQuery } });
+          return fallbackRes.data;
+        } catch { }
+      }
+      console.error(`Could not fetch weather for ${label}:`, primaryErr.message);
+      throw new Error(`Failed to fetch weather data for ${label}`);
+    }
   }
 
   try {
@@ -39,6 +68,67 @@ export const getWeather = async (query) => {
   }
 };
 
+export function processForecastData(data) {
+  const list = data?.list || [];
+  const cityData = data?.city || {};
+  const tzOffset = cityData.timezone !== undefined ? cityData.timezone : 19800;
+
+  const dailyData = {};
+  list.forEach((item) => {
+    const localDateObj = new Date((item.dt + tzOffset) * 1000);
+    const date = localDateObj.toISOString().split('T')[0];
+    const popVal = Math.round((item.pop || 0) * 100);
+
+    if (!dailyData[date]) {
+      dailyData[date] = {
+        min: item.main.temp_min,
+        max: item.main.temp_max,
+        conditions: [item.weather[0]?.main || 'Clear'],
+        maxPop: popVal,
+      };
+    } else {
+      dailyData[date].min = Math.min(dailyData[date].min, item.main.temp_min);
+      dailyData[date].max = Math.max(dailyData[date].max, item.main.temp_max);
+      dailyData[date].conditions.push(item.weather[0]?.main || 'Clear');
+      dailyData[date].maxPop = Math.max(dailyData[date].maxPop, popVal);
+    }
+  });
+
+  return Object.keys(dailyData)
+    .slice(0, 5)
+    .map((date, idx) => {
+      const dayData = dailyData[date];
+      const conditionCounts = dayData.conditions.reduce((acc, curr) => {
+        acc[curr] = (acc[curr] || 0) + 1;
+        return acc;
+      }, {});
+
+      let mainCondition = Object.keys(conditionCounts)[0] || 'Clear';
+      let maxCount = conditionCounts[mainCondition] || 0;
+      for (const cond in conditionCounts) {
+        if (conditionCounts[cond] > maxCount) {
+          mainCondition = cond;
+          maxCount = conditionCounts[cond];
+        }
+      }
+
+      const dateObj = new Date(`${date}T00:00:00`);
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      let dayName = days[dateObj.getDay()];
+      if (idx === 0) dayName = 'Today';
+      if (idx === 1) dayName = 'Tomorrow';
+
+      return {
+        day: dayName,
+        date,
+        min: Math.round(dayData.min),
+        max: Math.round(dayData.max),
+        condition: mainCondition,
+        pop: dayData.maxPop,
+      };
+    });
+};
+
 export const getForecast = async (query) => {
   const FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast';
   const params = {
@@ -47,19 +137,40 @@ export const getForecast = async (query) => {
   };
 
   let label = 'unknown location';
+  let primaryQuery = '';
+  let fallbackQuery = '';
 
   if (typeof query === 'string') {
-    params.q = query;
-    label = query;
+    primaryQuery = cleanCityQuery(query);
+    fallbackQuery = query;
+    label = primaryQuery;
   } else if (query && typeof query === 'object') {
-    const { city, lat, lon } = query;
+    const { city, country, lat, lon } = query;
     if (lat !== undefined && lon !== undefined) {
       params.lat = lat;
       params.lon = lon;
       label = `${lat}, ${lon}`;
     } else if (city) {
-      params.q = city;
-      label = city;
+      const cleaned = cleanCityQuery(city);
+      primaryQuery = country ? `${cleaned},${country}` : cleaned;
+      fallbackQuery = city;
+      label = primaryQuery;
+    }
+  }
+
+  if (primaryQuery) {
+    try {
+      const response = await axios.get(FORECAST_URL, { params: { ...params, q: primaryQuery } });
+      return processForecastData(response.data);
+    } catch (primaryErr) {
+      if (fallbackQuery && fallbackQuery !== primaryQuery) {
+        try {
+          const fallbackRes = await axios.get(FORECAST_URL, { params: { ...params, q: fallbackQuery } });
+          return processForecastData(fallbackRes.data);
+        } catch { }
+      }
+      console.error(`Could not fetch forecast for ${label}:`, primaryErr.message);
+      return [];
     }
   }
 
@@ -134,8 +245,8 @@ export const getForecast = async (query) => {
           idx === 0
             ? 'Today'
             : idx === 1
-            ? 'Tomorrow'
-            : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+              ? 'Tomorrow'
+              : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
 
         const formattedDate = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', {
           month: 'short',

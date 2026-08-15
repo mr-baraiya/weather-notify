@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { Country } from 'country-state-city';
 import { getWeatherTip, formatTime, getAQIStatus, getUVStatus } from './alertTemplates.js';
 
 const formatDisplayDate = (dateObj) => {
@@ -21,12 +22,22 @@ const formatGenTimestamp = (dateObj) => {
   return `${dateStr} at ${formattedHours}:${formattedMinutes} ${ampm}`;
 };
 
+const sanitizePdfText = (str = '') => {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x00-\x7F]/g, '')
+    .trim();
+};
+
 export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot', reportDate = new Date()) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 36,
+        margin: 32,
+        bufferPages: true,
         autoFirstPage: true,
         autoPageBreak: false,
       });
@@ -40,15 +51,19 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
       const forecast = weatherBundle?.forecast || [];
       const hourly = weatherBundle?.hourly || [];
       const airPollution = weatherBundle?.airPollution || null;
-      const state = weatherBundle?.state || current.sys?.state || '';
+      const state = sanitizePdfText(weatherBundle?.state || current.sys?.state || '');
 
       const sys = current.sys || {};
       const main = current.main || {};
       const weatherArr = current.weather || [{}];
       const tzOffset = current.timezone !== undefined ? current.timezone : 19800;
 
-      const city = current.name || cityName;
-      const locationStr = state ? `${city}, ${state}` : city;
+      const rawCity = current.name || cityName;
+      const city = sanitizePdfText(rawCity);
+      const countryCode = sys.country || 'IN';
+      const countryName = sanitizePdfText(Country.getCountryByCode(countryCode)?.name || countryCode);
+      const locationParts = [city, state, countryName].filter(Boolean);
+      const locationStr = locationParts.join(', ');
       const dateStr = formatDisplayDate(reportDate);
 
       const temp = Math.round(main.temp !== undefined ? main.temp : 30);
@@ -84,39 +99,34 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
       const uvVal = Math.min(11, Math.max(1, Math.round(temp / 4.5)));
       const uvLabel = getUVStatus(uvVal);
 
-      // Colors
-      const primaryColor = '#2563eb'; // Weather Notify Accent Blue
-      const darkColor = '#0f172a';
-      const bodyColor = '#334155';
-      const mutedColor = '#64748b';
-      const borderColor = '#e2e8f0';
+      // Monochrome Palette (Professional Black & White)
+      const black = '#0f172a';
+      const darkGrey = '#334155';
+      const mutedGrey = '#64748b';
+      const borderGrey = '#cbd5e1';
       const lightBg = '#f8fafc';
 
-      const leftMargin = 36;
-      const rightMargin = 559; // 595 - 36
-      const contentWidth = 523;
-
-      let y = 36;
+      const leftMargin = 32;
+      const rightMargin = 563; // 595.28 - 32
+      const contentWidth = 531;
 
       // ─── 1. HEADER SECTION ──────────────────────────────────────────
-      doc.fillColor(primaryColor).fontSize(20).font('Helvetica-Bold').text('Weather Notify', leftMargin, y);
-      doc.fillColor(mutedColor).fontSize(12).font('Helvetica').text('Daily Weather Report', rightMargin - 150, y, { width: 150, align: 'right' });
-      y += 24;
+      doc.fillColor(black).fontSize(16).font('Helvetica-Bold').text('WEATHER NOTIFY', leftMargin, 28);
+      doc.fillColor(mutedGrey).fontSize(9).font('Helvetica-Bold').text('DAILY WEATHER BULLETIN', rightMargin - 160, 30, { width: 160, align: 'right' });
 
-      doc.fillColor(darkColor).fontSize(16).font('Helvetica-Bold').text(locationStr, leftMargin, y);
-      doc.fillColor(bodyColor).fontSize(11).font('Helvetica').text(dateStr, rightMargin - 150, y, { width: 150, align: 'right' });
-      y += 24;
+      doc.fillColor(darkGrey).fontSize(12).font('Helvetica-Bold').text(locationStr, leftMargin, 48);
+      doc.fillColor(mutedGrey).fontSize(9).font('Helvetica').text(dateStr, rightMargin - 150, 50, { width: 150, align: 'right' });
 
-      // Divider Line
-      doc.strokeColor(borderColor).lineWidth(1).moveTo(leftMargin, y).lineTo(rightMargin, y).stroke();
-      y += 16;
+      // Line Separator
+      doc.strokeColor(borderGrey).lineWidth(1).moveTo(leftMargin, 66).lineTo(rightMargin, 66).stroke();
 
       // ─── 2. TODAY'S WEATHER OVERVIEW (GRID) ────────────────────────
-      doc.fillColor(darkColor).fontSize(13).font('Helvetica-Bold').text("Today's Weather", leftMargin, y);
-      y += 18;
+      let curY = 76;
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text("TODAY'S WEATHER", leftMargin, curY);
+      curY += 14;
 
-      const gridBoxWidth = 124;
-      const gridBoxHeight = 44;
+      const gridBoxWidth = 126;
+      const gridBoxHeight = 32;
       const gridGap = 9;
 
       const overviewItems = [
@@ -125,27 +135,27 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
         { label: 'Feels Like', value: `${feelsLike}°C` },
         { label: 'Humidity', value: `${humidity}%` },
         { label: 'Wind Speed', value: `${windKmh} km/h` },
-        { label: 'Rain Probability', value: `${pop}%` },
+        { label: 'Rain Chance', value: `${pop}%` },
         { label: 'Visibility', value: `${visibilityKm} km` },
-        { label: 'UV Index', value: uvLabel },
+        { label: 'AQI / UV', value: `AQI ${aqiVal} · UV ${uvVal}` },
       ];
 
       overviewItems.forEach((item, idx) => {
         const col = idx % 4;
         const row = Math.floor(idx / 4);
         const bx = leftMargin + col * (gridBoxWidth + gridGap);
-        const by = y + row * (gridBoxHeight + gridGap);
+        const by = curY + row * (gridBoxHeight + gridGap);
 
-        doc.rect(bx, by, gridBoxWidth, gridBoxHeight).fillAndStroke(lightBg, borderColor);
-        doc.fillColor(mutedColor).fontSize(9).font('Helvetica').text(item.label.toUpperCase(), bx + 8, by + 7);
-        doc.fillColor(darkColor).fontSize(11).font('Helvetica-Bold').text(item.value, bx + 8, by + 22, { width: gridBoxWidth - 16, ellipsis: true });
+        doc.rect(bx, by, gridBoxWidth, gridBoxHeight).fillAndStroke(lightBg, borderGrey);
+        doc.fillColor(mutedGrey).fontSize(7).font('Helvetica').text(item.label.toUpperCase(), bx + 6, by + 4);
+        doc.fillColor(black).fontSize(9.5).font('Helvetica-Bold').text(item.value, bx + 6, by + 16, { width: gridBoxWidth - 12, ellipsis: true });
       });
 
-      y += 2 * (gridBoxHeight + gridGap) + 12;
+      curY += 2 * (gridBoxHeight + gridGap) + 10;
 
       // ─── 3. WEATHER SUMMARY ───────────────────────────────────────
-      doc.fillColor(darkColor).fontSize(13).font('Helvetica-Bold').text('Weather Summary', leftMargin, y);
-      y += 16;
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text('WEATHER SUMMARY', leftMargin, curY);
+      curY += 14;
 
       const rawTip = getWeatherTip({
         temp,
@@ -158,22 +168,21 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
         visibility: visibilityKm,
       }).replace(/^Tip:\s*/i, '');
 
-      let summaryText = `Expect ${conditionDesc} with temperatures ranging from a low of ${low}°C to a high of ${high}°C today. ` +
-        `Wind speeds will average around ${windKmh} km/h with relative humidity at ${humidity}%. ${rawTip}`;
+      const summaryText = `Expect ${conditionDesc} with temperatures ranging from ${low}°C to ${high}°C today. ` +
+        `Wind speeds average ${windKmh} km/h with relative humidity at ${humidity}%. ${rawTip}`;
 
-      doc.rect(leftMargin, y, contentWidth, 52).fillAndStroke('#eff6ff', '#bfdbfe');
-      doc.fillColor('#1e40af').fontSize(10).font('Helvetica').text(summaryText, leftMargin + 12, y + 10, {
-        width: contentWidth - 24,
-        lineGap: 3,
+      doc.rect(leftMargin, curY, contentWidth, 34).fillAndStroke(lightBg, borderGrey);
+      doc.fillColor(darkGrey).fontSize(8).font('Helvetica').text(summaryText, leftMargin + 8, curY + 6, {
+        width: contentWidth - 16,
+        lineGap: 2,
       });
 
-      y += 64;
+      curY += 44;
 
       // ─── 4. HOURLY FORECAST TABLE ──────────────────────────────────
-      doc.fillColor(darkColor).fontSize(13).font('Helvetica-Bold').text('Hourly Forecast', leftMargin, y);
-      y += 16;
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text('HOURLY FORECAST', leftMargin, curY);
+      curY += 14;
 
-      // Select 5-6 representative hours (e.g. slots 0, 1, 2, 3, 4, 5 from hourly array)
       const displayHourly = hourly.length >= 5 ? hourly.slice(0, 5) : [
         { time: '09:00 AM', temp, condition, pop },
         { time: '12:00 PM', temp: high, condition, pop },
@@ -182,61 +191,58 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
         { time: '09:00 PM', temp: low, condition, pop },
       ];
 
-      // Table Header
-      const tableY = y;
-      doc.rect(leftMargin, tableY, contentWidth, 24).fillAndStroke(lightBg, borderColor);
-      doc.fillColor(darkColor).fontSize(9).font('Helvetica-Bold');
-      doc.text('TIME', leftMargin + 12, tableY + 7, { width: 100 });
-      doc.text('TEMPERATURE', leftMargin + 120, tableY + 7, { width: 100 });
-      doc.text('CONDITION', leftMargin + 240, tableY + 7, { width: 140 });
-      doc.text('RAIN CHANCE', leftMargin + 390, tableY + 7, { width: 115, align: 'right' });
+      doc.rect(leftMargin, curY, contentWidth, 16).fillAndStroke(lightBg, borderGrey);
+      doc.fillColor(black).fontSize(7.5).font('Helvetica-Bold');
+      doc.text('TIME', leftMargin + 8, curY + 4, { width: 90 });
+      doc.text('TEMPERATURE', leftMargin + 110, curY + 4, { width: 100 });
+      doc.text('CONDITION', leftMargin + 230, curY + 4, { width: 140 });
+      doc.text('RAIN CHANCE', leftMargin + 380, curY + 4, { width: 140, align: 'right' });
 
-      y += 24;
+      curY += 16;
 
       displayHourly.forEach((hSlot, i) => {
         const rowBg = i % 2 === 1 ? '#f8fafc' : '#ffffff';
-        doc.rect(leftMargin, y, contentWidth, 22).fillAndStroke(rowBg, borderColor);
-        doc.fillColor(bodyColor).fontSize(9.5).font('Helvetica');
-        doc.text(hSlot.time || '--:--', leftMargin + 12, y + 6, { width: 100 });
-        doc.text(`${hSlot.temp}°C`, leftMargin + 120, y + 6, { width: 100 });
-        doc.text(hSlot.condition || 'Clear', leftMargin + 240, y + 6, { width: 140 });
-        doc.text(`${hSlot.pop || 0}%`, leftMargin + 390, y + 6, { width: 115, align: 'right' });
-        y += 22;
+        doc.rect(leftMargin, curY, contentWidth, 14).fillAndStroke(rowBg, borderGrey);
+        doc.fillColor(darkGrey).fontSize(8).font('Helvetica');
+        doc.text(hSlot.time || '--:--', leftMargin + 8, curY + 3, { width: 90 });
+        doc.text(`${hSlot.temp}°C`, leftMargin + 110, curY + 3, { width: 100 });
+        doc.text(hSlot.condition || 'Clear', leftMargin + 230, curY + 3, { width: 140 });
+        doc.text(`${hSlot.pop || 0}%`, leftMargin + 380, curY + 3, { width: 140, align: 'right' });
+        curY += 14;
       });
 
-      y += 14;
+      curY += 10;
 
       // ─── 5. 5-DAY WEATHER FORECAST ────────────────────────────────
-      doc.fillColor(darkColor).fontSize(12).font('Helvetica-Bold').text('5-Day Outlook', leftMargin, y);
-      y += 14;
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text('5-DAY OUTLOOK', leftMargin, curY);
+      curY += 14;
 
       const displayForecast = forecast.slice(0, 5);
-      const fTableY = y;
-      doc.rect(leftMargin, fTableY, contentWidth, 20).fillAndStroke(lightBg, borderColor);
-      doc.fillColor(darkColor).fontSize(8.5).font('Helvetica-Bold');
-      doc.text('DAY & DATE', leftMargin + 10, fTableY + 5, { width: 110 });
-      doc.text('TEMP RANGE', leftMargin + 125, fTableY + 5, { width: 110 });
-      doc.text('CONDITION', leftMargin + 240, fTableY + 5, { width: 140 });
-      doc.text('RAIN CHANCE', leftMargin + 390, fTableY + 5, { width: 115, align: 'right' });
+      doc.rect(leftMargin, curY, contentWidth, 16).fillAndStroke(lightBg, borderGrey);
+      doc.fillColor(black).fontSize(7.5).font('Helvetica-Bold');
+      doc.text('DAY & DATE', leftMargin + 8, curY + 4, { width: 110 });
+      doc.text('TEMP RANGE', leftMargin + 120, curY + 4, { width: 100 });
+      doc.text('CONDITION', leftMargin + 230, curY + 4, { width: 140 });
+      doc.text('RAIN CHANCE', leftMargin + 380, curY + 4, { width: 140, align: 'right' });
 
-      y += 20;
+      curY += 16;
 
       displayForecast.forEach((fSlot, i) => {
         const rowBg = i % 2 === 1 ? '#f8fafc' : '#ffffff';
-        doc.rect(leftMargin, y, contentWidth, 18).fillAndStroke(rowBg, borderColor);
-        doc.fillColor(bodyColor).fontSize(8.5).font('Helvetica');
-        doc.text(`${fSlot.day || 'Day'}, ${fSlot.date || ''}`, leftMargin + 10, y + 4, { width: 110 });
-        doc.text(`${fSlot.min}°C – ${fSlot.max}°C`, leftMargin + 125, y + 4, { width: 110 });
-        doc.text(fSlot.condition || 'Clear', leftMargin + 240, y + 4, { width: 140 });
-        doc.text(`${fSlot.pop || 0}%`, leftMargin + 390, y + 4, { width: 115, align: 'right' });
-        y += 18;
+        doc.rect(leftMargin, curY, contentWidth, 14).fillAndStroke(rowBg, borderGrey);
+        doc.fillColor(darkGrey).fontSize(8).font('Helvetica');
+        doc.text(`${fSlot.day || 'Day'}, ${fSlot.date || ''}`, leftMargin + 8, curY + 3, { width: 110 });
+        doc.text(`${fSlot.min}°C – ${fSlot.max}°C`, leftMargin + 120, curY + 3, { width: 100 });
+        doc.text(fSlot.condition || 'Clear', leftMargin + 230, curY + 3, { width: 140 });
+        doc.text(`${fSlot.pop || 0}%`, leftMargin + 380, curY + 3, { width: 140, align: 'right' });
+        curY += 14;
       });
 
-      y += 14;
+      curY += 10;
 
-      // ─── 6. WEATHER ALERTS SECTION ─────────────────────────────────
-      doc.fillColor(darkColor).fontSize(13).font('Helvetica-Bold').text('Weather Alerts', leftMargin, y);
-      y += 16;
+      // ─── 6. WEATHER ALERTS ────────────────────────────────────────
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text('WEATHER ADVISORY', leftMargin, curY);
+      curY += 14;
 
       let alertTitle = '';
       let alertMessage = '';
@@ -246,48 +252,49 @@ export async function generateDailyReportPdf(weatherBundle, cityName = 'Rajkot',
         alertMessage = `High probability of rainfall (${pop}%) expected today. Carry an umbrella and exercise caution when traveling.`;
       } else if (temp >= 38) {
         alertTitle = 'Heat Advisory';
-        alertMessage = `High temperatures (${temp}°C) expected. Stay hydrated and limit prolonged outdoor exposure during peak afternoon hours.`;
+        alertMessage = `High temperatures (${temp}°C) expected. Stay hydrated and limit outdoor exposure during peak hours.`;
       } else if (windKmh >= 35) {
         alertTitle = 'Strong Wind Advisory';
         alertMessage = `Gusty winds up to ${windKmh} km/h expected. Secure loose outdoor objects and exercise caution.`;
       }
 
       if (alertTitle) {
-        doc.rect(leftMargin, y, contentWidth, 42).fillAndStroke('#fff7ed', '#ffedd5');
-        doc.fillColor('#c2410c').fontSize(10).font('Helvetica-Bold').text(alertTitle, leftMargin + 12, y + 8);
-        doc.fillColor('#9a3412').fontSize(9).font('Helvetica').text(alertMessage, leftMargin + 12, y + 22, { width: contentWidth - 24 });
-        y += 52;
+        doc.rect(leftMargin, curY, contentWidth, 26).fillAndStroke(lightBg, borderGrey);
+        doc.fillColor(black).fontSize(8).font('Helvetica-Bold').text(alertTitle, leftMargin + 8, curY + 4);
+        doc.fillColor(darkGrey).fontSize(7.5).font('Helvetica').text(alertMessage, leftMargin + 8, curY + 14, { width: contentWidth - 16 });
+        curY += 32;
       } else {
-        doc.rect(leftMargin, y, contentWidth, 28).fillAndStroke('#f8fafc', borderColor);
-        doc.fillColor(mutedColor).fontSize(9.5).font('Helvetica').text('No significant weather alerts today.', leftMargin + 12, y + 8);
-        y += 38;
+        doc.rect(leftMargin, curY, contentWidth, 20).fillAndStroke(lightBg, borderGrey);
+        doc.fillColor(mutedGrey).fontSize(8).font('Helvetica').text('No severe weather advisories issued for today.', leftMargin + 8, curY + 6);
+        curY += 26;
       }
 
-      // ─── 6. SUNRISE / SUNSET & EXTRAS ──────────────────────────────
-      doc.fillColor(darkColor).fontSize(13).font('Helvetica-Bold').text('Sun & Air Details', leftMargin, y);
-      y += 16;
+      // ─── 7. SUN & AIR DETAILS ─────────────────────────────────────
+      doc.fillColor(black).fontSize(10).font('Helvetica-Bold').text('SUN & AIR DETAILS', leftMargin, curY);
+      curY += 14;
 
-      doc.rect(leftMargin, y, contentWidth, 34).fillAndStroke(lightBg, borderColor);
-      doc.fillColor(mutedColor).fontSize(9.5).font('Helvetica');
-      doc.text('Sunrise:', leftMargin + 12, y + 10);
-      doc.fillColor(darkColor).font('Helvetica-Bold').text(sunrise, leftMargin + 56, y + 10);
+      doc.rect(leftMargin, curY, contentWidth, 22).fillAndStroke(lightBg, borderGrey);
+      doc.fillColor(mutedGrey).fontSize(8).font('Helvetica');
+      doc.text('Sunrise:', leftMargin + 8, curY + 6);
+      doc.fillColor(black).font('Helvetica-Bold').text(sunrise, leftMargin + 46, curY + 6);
 
-      doc.fillColor(mutedColor).font('Helvetica').text('Sunset:', leftMargin + 140, y + 10);
-      doc.fillColor(darkColor).font('Helvetica-Bold').text(sunset, leftMargin + 182, y + 10);
+      doc.fillColor(mutedGrey).font('Helvetica').text('Sunset:', leftMargin + 130, curY + 6);
+      doc.fillColor(black).font('Helvetica-Bold').text(sunset, leftMargin + 168, curY + 6);
 
-      doc.fillColor(mutedColor).font('Helvetica').text('Air Quality:', leftMargin + 270, y + 10);
-      doc.fillColor(darkColor).font('Helvetica-Bold').text(aqiLabel, leftMargin + 330, y + 10);
+      doc.fillColor(mutedGrey).font('Helvetica').text('Air Quality:', leftMargin + 260, curY + 6);
+      doc.fillColor(black).font('Helvetica-Bold').text(aqiLabel, leftMargin + 312, curY + 6);
 
-      y += 46;
+      doc.fillColor(mutedGrey).font('Helvetica').text('UV Index:', leftMargin + 420, curY + 6);
+      doc.fillColor(black).font('Helvetica-Bold').text(uvLabel, leftMargin + 468, curY + 6);
 
-      // ─── 7. FOOTER SECTION ─────────────────────────────────────────
-      const footerY = 790; // Fixed footer position near bottom of A4 (841pt total)
-      doc.strokeColor(borderColor).lineWidth(1).moveTo(leftMargin, footerY - 10).lineTo(rightMargin, footerY - 10).stroke();
+      // ─── 8. FOOTER SECTION (STRICT 1-PAGE) ────────────────────────
+      const footerY = 794;
+      doc.strokeColor(borderGrey).lineWidth(1).moveTo(leftMargin, footerY - 6).lineTo(rightMargin, footerY - 6).stroke();
 
-      doc.fillColor(mutedColor).fontSize(8.5).font('Helvetica');
+      doc.fillColor(mutedGrey).fontSize(7.5).font('Helvetica');
       doc.text('Weather Notify', leftMargin, footerY);
-      doc.text(`Today's report generated on ${formatGenTimestamp(reportDate)}`, leftMargin + 90, footerY, { width: 300 });
-      doc.text('Weather data provided by OpenWeather', rightMargin - 180, footerY, { width: 180, align: 'right' });
+      doc.text(`Report generated on ${formatGenTimestamp(reportDate)}`, leftMargin + 80, footerY, { width: 280 });
+      doc.text('Data provided by OpenWeather', rightMargin - 160, footerY, { width: 160, align: 'right' });
 
       doc.end();
     } catch (error) {

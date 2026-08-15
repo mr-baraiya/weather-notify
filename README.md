@@ -137,6 +137,13 @@ Scheduled via `vercel.json` at `00:30 UTC` = **6:00 AM IST** daily:
 
 ---
 
+## Weather Map Attribution
+
+Weather map visualization provided by [Windy.com](https://www.windy.com).  
+Weather data and visualizations are subject to Windy's applicable terms of use.
+
+---
+
 ## License
 
 MIT

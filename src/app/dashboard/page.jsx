@@ -2,8 +2,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Mail, Send, CheckCircle, AlertCircle, LayoutDashboard, MessageSquare, Radio, Eye, Pencil, Trash2, X, ShieldCheck, LogOut, Plus, UserCog } from 'lucide-react';
+import { Users, Mail, Send, CheckCircle, AlertCircle, LayoutDashboard, MessageSquare, Radio, Eye, Pencil, Trash2, X, ShieldCheck, LogOut, Plus, UserCog, UserCheck, UserX, User } from 'lucide-react';
 import Link from 'next/link';
+import LocationSelector from '@/components/LocationSelector';
 
 const CATEGORIES = ['General Inquiry', 'Bug Report', 'Feature Request', 'WhatsApp Connection Issue', 'Alert / Notification Issue', 'Other'];
 
@@ -22,7 +23,13 @@ const inputStyle = {
   color: '#ffffff' 
 };
 
-const inputCls = 'w-full rounded-lg px-3 py-2 text-sm text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all';
+const inputCls = 'w-full rounded-lg px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white placeholder-white/60 focus:outline-none focus:border-white/50 focus:bg-white/20 transition-all';
+
+const formatCallingCode = (code) => {
+  if (!code) return '+91';
+  const digits = code.toString().replace(/\+/g, '').trim();
+  return digits ? `+${digits}` : '+91';
+};
 
 // Abbreviate long category names for the chart X-axis
 const CAT_SHORT = {
@@ -263,10 +270,10 @@ function Modal({ title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm">
       <div
         style={cardStyle}
-        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 text-white space-y-4 max-h-[90vh] overflow-y-auto"
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-3.5 sm:p-6 text-white space-y-2.5 sm:space-y-4 max-h-[96vh] sm:max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="text-sm sm:text-base font-semibold">{title}</h2>
           <button
             onClick={onClose}
             className="text-gray-600 hover:text-gray-300 transition-colors p-1 -mr-1 rounded-lg hover:bg-white/5"
@@ -472,7 +479,9 @@ function SubscribersTab({ token }) {
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', city: '', phone: '', email: '', isActive: true });
+  const [form, setForm] = useState({ name: '', country: 'IN', state: '', city: '', phone: '', email: '', isActive: true });
+  const [adminCallingCode, setAdminCallingCode] = useState('+91');
+  const [formErrors, setFormErrors] = useState({ name: '', email: '', country: '', state: '', city: '', phone: '' });
   const [formErr, setFormErr] = useState('');
   const [saving, setSaving] = useState(false);
   const limit = 8;
@@ -490,8 +499,34 @@ function SubscribersTab({ token }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const openCreate = () => { setForm({ name: '', city: '', phone: '', email: '', isActive: true }); setFormErr(''); setModal('create'); };
-  const openEdit = (r) => { setSelected(r); setForm({ name: r.name, city: r.city, phone: r.phone, email: r.email, isActive: r.isActive !== false }); setFormErr(''); setModal('edit'); };
+  const openCreate = () => {
+    setAdminCallingCode('+91');
+    setForm({ name: '', country: 'IN', state: '', city: '', phone: '', email: '', isActive: true });
+    setFormErrors({ name: '', email: '', country: '', state: '', city: '', phone: '' });
+    setFormErr('');
+    setModal('create');
+  };
+
+  const openEdit = (r) => {
+    setSelected(r);
+    const rawDigits = (r.phone || '').replace(/\D/g, '');
+    const localPhone = rawDigits.length > 10 ? rawDigits.slice(-10) : rawDigits;
+    const codePrefix = rawDigits.length > 10 ? '+' + rawDigits.slice(0, -10) : '+91';
+    setAdminCallingCode(formatCallingCode(codePrefix));
+    setForm({
+      name: r.name,
+      country: r.country || 'IN',
+      state: r.state || '',
+      city: r.city,
+      phone: localPhone,
+      email: r.email,
+      isActive: r.isActive !== false,
+    });
+    setFormErrors({ name: '', email: '', country: '', state: '', city: '', phone: '' });
+    setFormErr('');
+    setModal('edit');
+  };
+
   const openView = (r) => { setSelected(r); setModal('view'); };
   const openDelete = (r) => { setSelected(r); setModal('delete'); };
   const closeModal = () => { setModal(null); setSelected(null); };
@@ -506,15 +541,45 @@ function SubscribersTab({ token }) {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.city || !form.phone || !form.email) { setFormErr('All fields are required.'); return; }
-    setSaving(true); setFormErr('');
+    let hasErr = false;
+    const errs = { name: '', email: '', country: '', state: '', city: '', phone: '' };
+
+    if (!form.name.trim()) { errs.name = 'Name is Required'; hasErr = true; }
+    if (!form.email.trim()) {
+      errs.email = 'Email is Required'; hasErr = true;
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+      errs.email = 'Invalid email address'; hasErr = true;
+    }
+    if (!form.country) { errs.country = 'Country is Required'; hasErr = true; }
+    if (!form.state) { errs.state = 'State is Required'; hasErr = true; }
+    if (!form.city) { errs.city = 'City is Required'; hasErr = true; }
+    if (!form.phone.trim()) {
+      errs.phone = 'Phone is Required'; hasErr = true;
+    } else if (!/^\d{10}$/.test(form.phone.replace(/\D/g, ''))) {
+      errs.phone = '10 digit mobile number required'; hasErr = true;
+    }
+
+    setFormErrors(errs);
+    if (hasErr) return;
+
+    setSaving(true);
     try {
+      const activeCallingCode = formatCallingCode(adminCallingCode);
+      const digitsOnly = form.phone.replace(/\D/g, '').slice(0, 10);
+      const fullPhone = `${activeCallingCode}${digitsOnly}`;
+      const payload = { ...form, phone: fullPhone };
+
       if (modal === 'create') {
-        await axios.post('/api/admin/subscribers', form, auth);
+        await axios.post('/api/admin/subscribers', payload, auth);
       } else {
-        await axios.put('/api/admin/subscribers', { id: selected._id, ...form }, auth);
+        await axios.put('/api/admin/subscribers', { id: selected._id, ...payload }, auth);
       }
-      closeModal(); load();
+      closeModal();
+      setSearch('');
+      setCityFilter('');
+      setStatusFilter('');
+      setPage(1);
+      load();
     } catch (e) { setFormErr(e.response?.data?.message || 'Error saving.'); }
     finally { setSaving(false); }
   };
@@ -533,6 +598,17 @@ function SubscribersTab({ token }) {
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <input
+          readOnly
+          onFocus={(e) => e.target.removeAttribute('readonly')}
+          type="text"
+          name="filter_search_no_autofill"
+          id="filter_search_no_autofill"
+          autoComplete="new-password"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck="false"
+          data-lpignore="true"
+          data-form-type="other"
           placeholder="Search name, phone or email…"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -541,6 +617,17 @@ function SubscribersTab({ token }) {
         />
         <div className="flex gap-2">
           <input
+            readOnly
+            onFocus={(e) => e.target.removeAttribute('readonly')}
+            type="text"
+            name="filter_city_no_autofill"
+            id="filter_city_no_autofill"
+            autoComplete="new-password"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+            data-lpignore="true"
+            data-form-type="other"
             placeholder="City…"
             value={cityFilter}
             onChange={e => { setCityFilter(e.target.value); setPage(1); }}
@@ -729,39 +816,103 @@ function SubscribersTab({ token }) {
       {/* Modals */}
       {(modal === 'create' || modal === 'edit') && (
         <Modal title={modal === 'create' ? 'New Subscriber' : 'Edit Subscriber'} onClose={closeModal}>
-          <div className="space-y-3">
-            {['name', 'email', 'city', 'phone'].map(f => (
-              <div key={f} className="space-y-1">
-                <label className="text-xs text-sky-200 font-semibold uppercase tracking-wider capitalize">{f}</label>
-                <input value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
-                  placeholder={f === 'phone' ? '+91XXXXXXXXXX' : `Enter ${f}`}
-                  className={inputCls} style={inputStyle} />
-              </div>
-            ))}
+          <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-0.5 sm:space-y-1">
+              <label className="text-[10px] sm:text-xs text-sky-200 font-bold uppercase tracking-wider">Name</label>
+              <input
+                value={form.name}
+                onChange={e => {
+                  setForm(p => ({ ...p, name: e.target.value }));
+                  setFormErrors(p => ({ ...p, name: '' }));
+                }}
+                placeholder="Enter Name"
+                className={`${inputCls} ${formErrors.name ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                style={inputStyle}
+              />
+              {formErrors.name && <p className="text-[11px] text-red-300 font-medium mt-0.5 ml-1">{formErrors.name}</p>}
+            </div>
+            <div className="space-y-0.5 sm:space-y-1">
+              <label className="text-[10px] sm:text-xs text-sky-200 font-bold uppercase tracking-wider">Email</label>
+              <input
+                value={form.email}
+                onChange={e => {
+                  setForm(p => ({ ...p, email: e.target.value }));
+                  setFormErrors(p => ({ ...p, email: '' }));
+                }}
+                placeholder="Enter Email"
+                className={`${inputCls} ${formErrors.email ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                style={inputStyle}
+              />
+              {formErrors.email && <p className="text-[11px] text-red-300 font-medium mt-0.5 ml-1">{formErrors.email}</p>}
+            </div>
             
-            <div className="flex items-center justify-between pt-1">
-              <label className="text-xs text-sky-200 font-semibold uppercase tracking-wider">Status</label>
+            <LocationSelector
+              country={form.country}
+              state={form.state}
+              city={form.city}
+              onChange={({ country, state, city, phonecode }) => {
+                setForm(p => ({ ...p, country, state, city }));
+                setFormErrors(p => ({ ...p, country: '', state: '', city: '' }));
+                if (phonecode) {
+                  setAdminCallingCode(`+${phonecode}`);
+                }
+              }}
+              errors={{ country: formErrors.country, state: formErrors.state, city: formErrors.city }}
+              layout="vertical"
+              showLabels={true}
+              showIcons={false}
+            />
+
+            <div className="space-y-0.5 sm:space-y-1">
+              <label className="text-[10px] sm:text-xs text-sky-200 font-bold uppercase tracking-wider">Phone</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs sm:text-sm text-sky-200 font-bold select-none pointer-events-none z-10">
+                  {formatCallingCode(adminCallingCode)}
+                </span>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => {
+                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm(p => ({ ...p, phone: digitsOnly }));
+                    setFormErrors(p => ({ ...p, phone: '' }));
+                  }}
+                  placeholder="10 digit mobile number"
+                  maxLength={10}
+                  inputMode="numeric"
+                  style={{
+                    ...inputStyle,
+                    paddingLeft: `${12 + formatCallingCode(adminCallingCode).length * 7 + 6}px`,
+                  }}
+                  className={`${inputCls} ${formErrors.phone ? 'border-red-400 ring-1 ring-red-400' : ''}`}
+                />
+              </div>
+              {formErrors.phone && <p className="text-[11px] text-red-300 font-medium mt-0.5 ml-1">{formErrors.phone}</p>}
+            </div>
+            
+            <div className="flex items-center justify-between pt-0.5 sm:pt-1">
+              <label className="text-[10px] sm:text-xs text-sky-200 font-bold uppercase tracking-wider">Status</label>
               <button
                 type="button"
                 onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
                 title={form.isActive ? 'Active (click to deactivate)' : 'Deactive (click to activate)'}
                 className="inline-flex items-center cursor-pointer focus:outline-none select-none"
               >
-                <span className={`w-10 h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 border ${
+                <span className={`w-9 h-5 sm:w-10 sm:h-5.5 flex items-center rounded-full p-0.5 transition-colors duration-200 border ${
                   form.isActive ? 'bg-emerald-500/30 border-emerald-400/50' : 'bg-slate-700/60 border-slate-500/40'
                 }`}>
-                  <span className={`w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                    form.isActive ? 'translate-x-4.5 bg-emerald-400' : 'translate-x-0 bg-slate-400'
+                  <span className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                    form.isActive ? 'translate-x-4 sm:translate-x-4.5 bg-emerald-400' : 'translate-x-0 bg-slate-400'
                   }`} />
                 </span>
               </button>
             </div>
 
             {formErr && <p className="text-xs text-red-400">{formErr}</p>}
-            <div className="flex gap-3 pt-1">
-              <button onClick={closeModal} className="flex-1 rounded-lg border border-white/20 text-sm text-white/90 hover:text-white py-2.5 transition-colors">Cancel</button>
+            <div className="flex gap-2 sm:gap-3 pt-1">
+              <button onClick={closeModal} className="flex-1 rounded-lg border border-white/20 text-xs sm:text-sm text-white/90 hover:text-white py-2 sm:py-2.5 transition-colors">Cancel</button>
               <button onClick={handleSave} disabled={saving}
-                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors">
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold py-2 sm:py-2.5 transition-colors">
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -1275,7 +1426,7 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 w-full sm:max-w-2xl">
+    <div className="space-y-5 sm:space-y-6 w-full">
       {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-white">Send Message</h2>
@@ -1287,19 +1438,22 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
         <p className="text-xs text-sky-200/90 uppercase tracking-widest font-semibold">Recipients</p>
         <div className="flex flex-row gap-2 sm:gap-3">
           {[
-            ['all_active', 'All Active'],
-            ['all_deactive', 'All Deactive'],
-            ['specific', 'Specific Subscriber']
-          ].map(([val, label]) => (
+            ['all_active', 'All Active', UserCheck],
+            ['all_deactive', 'All Deactive', UserX],
+            ['specific', 'Specific Subscriber', User]
+          ].map(([val, label, IconComp]) => (
             <button
               key={val}
               onClick={() => { setTarget(val); setResult(null); }}
-              className={`flex-1 py-2.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all border ${target === val
+              title={label}
+              aria-label={label}
+              className={`flex-1 py-2.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all border flex items-center justify-center gap-2 ${target === val
                   ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
                   : 'border-white/15 text-white/70 hover:text-white hover:bg-white/10'
                 }`}
             >
-              {label}
+              <IconComp size={16} className="shrink-0" />
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
@@ -1458,8 +1612,18 @@ function AdminsTab({ token, currentUser }) {
   useEffect(() => { load(); }, [load]);
 
   const handleCreate = async () => {
-    if (!form.username.trim() || !form.password.trim()) { setFormErr('Username and password are required.'); return; }
-    if (form.password.length < 6) { setFormErr('Password must be at least 6 characters.'); return; }
+    if (!form.username.trim() || !form.email.trim() || !form.password.trim()) {
+      setFormErr('Username, email, and password are required.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      setFormErr('Please enter a valid email address.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setFormErr('Password must be at least 6 characters.');
+      return;
+    }
     setSaving(true); setFormErr('');
     try {
       await axios.post('/api/admin/admins', form, { headers: { Authorization: `Bearer ${token}` } });
@@ -1565,6 +1729,13 @@ function AdminsTab({ token, currentUser }) {
             <div className="space-y-1">
               <label className="text-xs text-sky-200 font-medium">Username</label>
               <input
+                readOnly
+                onFocus={(e) => e.target.removeAttribute('readonly')}
+                type="text"
+                name="new_admin_username_no_autofill"
+                id="new_admin_username_no_autofill"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.username}
                 onChange={e => { setForm(p => ({ ...p, username: e.target.value })); setFormErr(''); }}
                 placeholder="e.g. john_doe"
@@ -1572,9 +1743,15 @@ function AdminsTab({ token, currentUser }) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-sky-200 font-medium">Email Address (Optional)</label>
+              <label className="text-xs text-sky-200 font-medium">Email Address</label>
               <input
+                readOnly
+                onFocus={(e) => e.target.removeAttribute('readonly')}
                 type="email"
+                name="new_admin_email_no_autofill"
+                id="new_admin_email_no_autofill"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.email}
                 onChange={e => { setForm(p => ({ ...p, email: e.target.value })); setFormErr(''); }}
                 placeholder="e.g. admin@example.com"
@@ -1584,7 +1761,13 @@ function AdminsTab({ token, currentUser }) {
             <div className="space-y-1">
               <label className="text-xs text-sky-200 font-medium">Password</label>
               <input
+                readOnly
+                onFocus={(e) => e.target.removeAttribute('readonly')}
                 type="password"
+                name="new_admin_password_no_autofill"
+                id="new_admin_password_no_autofill"
+                autoComplete="new-password"
+                data-lpignore="true"
                 value={form.password}
                 onChange={e => { setForm(p => ({ ...p, password: e.target.value })); setFormErr(''); }}
                 placeholder="Min. 6 characters"
@@ -1664,7 +1847,7 @@ function DashboardShell({ onLock, token, username }) {
 
   return (
     <div className="min-h-screen py-8 sm:py-14 px-3 sm:px-4 text-white">
-      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
