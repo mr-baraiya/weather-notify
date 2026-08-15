@@ -41,7 +41,17 @@ export async function GET(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error in /api/geo/calling-code:', error);
-    return new Response(JSON.stringify({ success: false, message: 'Server Error' }), { status: 500 });
+    console.warn('Reverse geo lookup error in /api/geo/calling-code (using +91 fallback):', error?.message || error);
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          country: null,
+          callingCode: '+91',
+          isFallback: true,
+        },
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }

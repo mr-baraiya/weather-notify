@@ -185,10 +185,17 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error('Error serving weather report PDF:', error);
+    console.error('Error serving weather report:', error?.message || error);
+    const isNetworkError = !error.response || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ERR_NETWORK' || error.message?.includes('Network');
     return Response.json(
-      { success: false, message: 'Could not generate weather report PDF.' },
-      { status: 500 }
+      {
+        success: false,
+        offline: isNetworkError,
+        message: isNetworkError
+          ? 'No internet connection or weather service unavailable.'
+          : 'Could not generate weather report.',
+      },
+      { status: isNetworkError ? 503 : 500 }
     );
   }
 }

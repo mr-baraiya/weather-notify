@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import OfflineBanner from '@/components/OfflineBanner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -73,6 +74,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={`${inter.className} gradient-bg`}>
+        <OfflineBanner />
         <Navbar />
         <main>{children}</main>
         <Footer />

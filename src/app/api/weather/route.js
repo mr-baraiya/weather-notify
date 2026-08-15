@@ -43,10 +43,17 @@ export async function GET(request) {
     );
   } catch (error) {
     const label = hasCoords ? `${lat}, ${lon}` : city;
-    console.error(`Error fetching weather for ${label}:`, error);
+    console.error(`Error fetching weather for ${label}:`, error?.message || error);
+    const isNetworkError = !error.response || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ERR_NETWORK' || error.message?.includes('Network');
     return new Response(
-      JSON.stringify({ success: false, message: 'Error fetching weather data' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: false,
+        offline: isNetworkError,
+        message: isNetworkError
+          ? 'No internet connection or weather service unavailable.'
+          : 'Error fetching weather data',
+      }),
+      { status: isNetworkError ? 503 : 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

@@ -55,7 +55,10 @@ export const getWeather = async (query) => {
         } catch { }
       }
       console.error(`Could not fetch weather for ${label}:`, primaryErr.message);
-      throw new Error(`Failed to fetch weather data for ${label}`);
+      const customErr = new Error(`Failed to fetch weather data for ${label}`);
+      customErr.code = primaryErr.code;
+      customErr.response = primaryErr.response;
+      throw customErr;
     }
   }
 
@@ -63,8 +66,11 @@ export const getWeather = async (query) => {
     const response = await axios.get(API_URL, { params });
     return response.data;
   } catch (error) {
-    console.error(`Could not fetch weather for ${label}:`, error);
-    throw new Error('Failed to fetch weather data');
+    console.error(`Could not fetch weather for ${label}:`, error.message);
+    const customErr = new Error('Failed to fetch weather data');
+    customErr.code = error.code;
+    customErr.response = error.response;
+    throw customErr;
   }
 };
 

@@ -167,7 +167,10 @@ const SubscribeForm = () => {
         setMessage(response.data.message || 'Subscription failed. Please try again.');
       }
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
+      const isOffline = !navigator.onLine || error.code === 'ERR_NETWORK' || error.response?.status === 503;
+      if (isOffline) {
+        setMessage('No internet connection. Please check your network and try again.');
+      } else if (error.response && error.response.data && error.response.data.message) {
         setMessage(error.response.data.message);
       } else {
         setMessage('An error occurred. Please try again later.');

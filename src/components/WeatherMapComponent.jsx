@@ -224,8 +224,16 @@ export default function WeatherMapComponent({ weather, onLocationChange }) {
                 <div className="w-10 h-10 border-4 border-dotted border-indigo-400 rounded-full animate-spin" style={{ animationDuration: '3s' }} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Syncing Windy Satellite Data...</p>
-                <p className="text-xs text-sky-200/50 mt-1 max-w-[280px]">Connecting to dynamic forecasting layers and wind particle systems.</p>
+                <p className="text-sm font-semibold text-white">
+                  {typeof navigator !== 'undefined' && !navigator.onLine
+                    ? 'Offline Mode — Weather Radar Paused'
+                    : 'Syncing Windy Satellite Data...'}
+                </p>
+                <p className="text-xs text-sky-200/50 mt-1 max-w-[280px]">
+                  {typeof navigator !== 'undefined' && !navigator.onLine
+                    ? 'Reconnect to the internet to load live map layers.'
+                    : 'Connecting to dynamic forecasting layers and wind particle systems.'}
+                </p>
               </div>
             </div>
           )}

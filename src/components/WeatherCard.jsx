@@ -49,16 +49,23 @@ const WeatherCard = ({ weather }) => {
 
       {/* 5-Day Forecast */}
       {forecast.length > 0 && (
-        <div className="flex items-center justify-between gap-4 overflow-x-auto border-t border-white/10 pt-5 pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="grid grid-cols-5 gap-1 sm:gap-2 border-t border-white/10 pt-4 pb-1 text-center">
           {forecast.map((day, idx) => (
-            <div key={idx} className="flex flex-col items-center">
-              <p className="text-xs text-sky-100/75 mb-2">{day.day}</p>
-              <div className="text-white mb-2">
-                <WeatherIcon condition={day.condition} className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-semibold text-white">
-                {day.max}° <span className="text-sky-200/60 font-normal">{day.min}°</span>
+            <div key={idx} className="flex flex-col items-center justify-between h-full min-w-0">
+              <p className="text-[10px] sm:text-xs text-sky-100/75 font-medium truncate w-full mb-1.5" title={day.day}>
+                {day.day}
               </p>
+              <div className="text-white mb-1.5 flex items-center justify-center">
+                <WeatherIcon condition={day.condition} className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-xs sm:text-sm font-semibold text-white leading-tight">
+                  {day.max}°
+                </span>
+                <span className="text-[10px] sm:text-xs text-sky-200/60 font-normal leading-tight">
+                  {day.min}°
+                </span>
+              </div>
             </div>
           ))}
         </div>

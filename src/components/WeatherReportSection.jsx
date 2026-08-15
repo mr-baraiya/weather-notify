@@ -270,7 +270,8 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
       setReportData(actualReport);
       return actualReport;
     } catch (err) {
-      showToast(err.message || 'Error fetching report');
+      const isOffline = !navigator.onLine || err.message?.includes('Failed to fetch');
+      showToast(isOffline ? 'No internet connection. Please try again.' : (err.message || 'Error fetching report'));
       return null;
     } finally {
       setLoading(false);
@@ -303,7 +304,8 @@ export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
       document.body.removeChild(a);
       showToast('PDF downloaded successfully!');
     } catch (err) {
-      showToast(err.message || 'Error downloading PDF');
+      const isOffline = !navigator.onLine || err.message?.includes('Failed to fetch');
+      showToast(isOffline ? 'No internet connection. Please try again.' : (err.message || 'Error downloading PDF'));
     } finally {
       setDownloading(false);
     }

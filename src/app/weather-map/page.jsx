@@ -45,8 +45,13 @@ export default function WeatherMapPage() {
       } else {
         setErrorMessage('City not found. Please try another name.');
       }
-    } catch {
-      setErrorMessage('Unable to fetch weather data for this city.');
+    } catch (err) {
+      const isOffline = !navigator.onLine || err.response?.status === 503 || err.code === 'ERR_NETWORK';
+      setErrorMessage(
+        isOffline
+          ? 'No internet connection. Please check your network and try again.'
+          : 'Unable to fetch weather data for this city.'
+      );
     } finally {
       setLoading(false);
     }
@@ -62,10 +67,19 @@ export default function WeatherMapPage() {
         if (!canceled && res.data?.data) {
           setWeather(res.data.data);
           setActiveCity(res.data.data.current?.name || 'Rajkot');
-          setLoading(false);
         }
       } catch (err) {
         console.error('Initial weather map fetch error:', err);
+        if (!canceled) {
+          const isOffline = !navigator.onLine || err.response?.status === 503 || err.code === 'ERR_NETWORK';
+          setErrorMessage(
+            isOffline
+              ? 'No internet connection. Please check your network and try again.'
+              : 'Unable to fetch weather data.'
+          );
+        }
+      } finally {
+        if (!canceled) setLoading(false);
       }
 
       if (navigator.geolocation) {
