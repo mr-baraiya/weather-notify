@@ -13,7 +13,7 @@ const formatCallingCode = (code) => {
 };
 
 const SubscribeForm = () => {
-  const [formData, setFormData] = useState({ name: '', country: 'IN', state: '', city: '', phone: '', email: '' });
+  const [formData, setFormData] = useState({ name: '', country: '', state: '', city: '', phone: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [whatsappSetup, setWhatsappSetup] = useState(null);
@@ -162,7 +162,7 @@ const SubscribeForm = () => {
       if (response.data.success) {
         setMessage('Subscription successful! Complete the WhatsApp connection in the popup.');
         setWhatsappSetup(response.data.whatsappSetup || null);
-        setFormData({ name: '', country: 'IN', state: '', city: '', phone: '', email: '' });
+        setFormData({ name: '', country: '', state: '', city: '', phone: '', email: '' });
       } else {
         setMessage(response.data.message || 'Subscription failed. Please try again.');
       }

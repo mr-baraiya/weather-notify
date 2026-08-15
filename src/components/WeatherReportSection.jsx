@@ -210,7 +210,7 @@ function GlassDatePicker({ value, onChange, minDate, maxDate }) {
 /* ─── Main WeatherReportSection Component ───────────────────── */
 export default function WeatherReportSection({ initialCity = 'Rajkot' }) {
   const [mounted, setMounted] = useState(false);
-  const [location, setLocation] = useState({ country: 'IN', state: '', city: '' });
+  const [location, setLocation] = useState({ country: '', state: '', city: '' });
   const [locationErrors, setLocationErrors] = useState({ country: '', state: '', city: '' });
   const todayObj = new Date();
   const todayStr = todayObj.toISOString().split('T')[0];

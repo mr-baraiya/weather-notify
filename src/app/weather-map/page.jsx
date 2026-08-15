@@ -29,7 +29,7 @@ const POPULAR_CITIES = ['Rajkot', 'Delhi', 'Mumbai', 'Bangalore', 'Kolkata', 'Ah
 export default function WeatherMapPage() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [location, setLocation] = useState({ country: 'IN', state: '', city: '' });
+  const [location, setLocation] = useState({ country: '', state: '', city: '' });
   const [locationErrors, setLocationErrors] = useState({ country: '', state: '', city: '' });
   const [activeCity, setActiveCity] = useState('Rajkot');
   const [errorMessage, setErrorMessage] = useState('');

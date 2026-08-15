@@ -146,7 +146,7 @@ function SearchableSelect({
 
 /* ─── Main LocationSelector Component ────────────────────────── */
 export default function LocationSelector({
-  country = 'IN',
+  country = '',
   state = '',
   city = '',
   onChange,
@@ -164,37 +164,22 @@ export default function LocationSelector({
         value: c.isoCode,
         label: c.flag ? `${c.flag} ${c.name}` : c.name,
         name: c.name,
-        phonecode: c.phonecode || '91',
+        phonecode: c.phonecode || '',
       }));
   }, []);
 
-  // Effective selected country (defaults to India 'IN')
-  const activeCountryCode = country || 'IN';
+  // Effective selected country
+  const activeCountryCode = country || '';
 
   // Selected Country object
   const selectedCountryObj = useMemo(() => {
-    return (
-      countryOptions.find(
-        (c) => c.value === activeCountryCode || c.name.toLowerCase() === activeCountryCode.toLowerCase()
-      ) || countryOptions.find((c) => c.value === 'IN')
-    );
+    if (!activeCountryCode) return null;
+    return countryOptions.find(
+      (c) => c.value === activeCountryCode || c.name.toLowerCase() === activeCountryCode.toLowerCase()
+    ) || null;
   }, [activeCountryCode, countryOptions]);
 
-  const countryCode = selectedCountryObj?.value || 'IN';
-
-  // Notify parent if country was empty on mount so parent state stays synced with calling code
-  useEffect(() => {
-    if (!country && onChange && selectedCountryObj) {
-      onChange({
-        country: selectedCountryObj.value,
-        countryName: selectedCountryObj.name,
-        state: '',
-        stateName: '',
-        city: '',
-        phonecode: selectedCountryObj.phonecode || '91',
-      });
-    }
-  }, [country, onChange, selectedCountryObj]);
+  const countryCode = selectedCountryObj?.value || country || '';
 
   // Memoized State options for selected Country
   const stateOptions = useMemo(() => {
@@ -242,29 +227,29 @@ export default function LocationSelector({
       state: '',
       stateName: '',
       city: '',
-      phonecode: opt.phonecode || '91',
+      phonecode: opt.phonecode || '',
     });
   };
 
   const handleStateSelect = (opt) => {
     onChange({
       country: countryCode,
-      countryName: selectedCountryObj?.name || 'India',
+      countryName: selectedCountryObj?.name || '',
       state: opt.value,
       stateName: opt.name,
       city: '',
-      phonecode: selectedCountryObj?.phonecode || '91',
+      phonecode: selectedCountryObj?.phonecode || '',
     });
   };
 
   const handleCitySelect = (opt) => {
     onChange({
       country: countryCode,
-      countryName: selectedCountryObj?.name || 'India',
+      countryName: selectedCountryObj?.name || '',
       state: stateCode,
       stateName: selectedStateObj?.name || '',
       city: opt.value,
-      phonecode: selectedCountryObj?.phonecode || '91',
+      phonecode: selectedCountryObj?.phonecode || '',
     });
   };
 

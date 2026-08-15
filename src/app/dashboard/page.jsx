@@ -479,7 +479,7 @@ function SubscribersTab({ token }) {
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', country: 'IN', state: '', city: '', phone: '', email: '', isActive: true });
+  const [form, setForm] = useState({ name: '', country: '', state: '', city: '', phone: '', email: '', isActive: true });
   const [adminCallingCode, setAdminCallingCode] = useState('+91');
   const [formErrors, setFormErrors] = useState({ name: '', email: '', country: '', state: '', city: '', phone: '' });
   const [formErr, setFormErr] = useState('');
@@ -501,7 +501,7 @@ function SubscribersTab({ token }) {
 
   const openCreate = () => {
     setAdminCallingCode('+91');
-    setForm({ name: '', country: 'IN', state: '', city: '', phone: '', email: '', isActive: true });
+    setForm({ name: '', country: '', state: '', city: '', phone: '', email: '', isActive: true });
     setFormErrors({ name: '', email: '', country: '', state: '', city: '', phone: '' });
     setFormErr('');
     setModal('create');
@@ -515,7 +515,7 @@ function SubscribersTab({ token }) {
     setAdminCallingCode(formatCallingCode(codePrefix));
     setForm({
       name: r.name,
-      country: r.country || 'IN',
+      country: r.country || '',
       state: r.state || '',
       city: r.city,
       phone: localPhone,
