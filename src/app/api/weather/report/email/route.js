@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import { getOrGeneratePdfReport, slugifyCity, getReportDateStr } from '@/lib/pdfCache';
+import connectToDatabase from '@/lib/mongodb';
+import Subscriber from '@/models/Subscriber';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -17,6 +19,12 @@ export async function POST(request) {
 
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return Response.json({ success: false, message: 'Please provide a valid email address.' }, { status: 400 });
+    }
+
+    await connectToDatabase();
+    const subscriber = await Subscriber.findOne({ email: email.trim().toLowerCase() });
+    if (subscriber && subscriber.isActive === false) {
+      return Response.json({ success: false, message: 'Your account is deactivated. Deactivated users cannot receive email reports.' }, { status: 403 });
     }
 
     const citySlug = slugifyCity(city);

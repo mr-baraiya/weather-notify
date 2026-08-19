@@ -55,6 +55,14 @@ export async function POST(request) {
 
     await connectToDatabase();
 
+    const callerAdmin = await AdminUser.findOne({ username: caller.username });
+    const callerCb = (callerAdmin?.createdBy || '').toLowerCase();
+    const callerUn = (callerAdmin?.username || '').toLowerCase();
+    const isMainAdmin = Boolean(callerAdmin) && (callerCb === 'seed' || callerCb === 'system' || callerUn === 'admin');
+    if (!isMainAdmin) {
+      return json({ success: false, message: 'Only the main seed admin can add new admin accounts.' }, 403);
+    }
+
     const cleanUsername = username.trim().toLowerCase();
     const cleanEmail = email.trim().toLowerCase();
 
@@ -90,7 +98,7 @@ export async function POST(request) {
 
 /**
  * DELETE /api/admin/admins?id=<adminId>
- * Deletes an admin account. Cannot delete yourself.
+ * Deletes an admin account. Only Main Seed Admin can delete admin accounts.
  */
 export async function DELETE(request) {
   let caller;
@@ -104,11 +112,29 @@ export async function DELETE(request) {
 
     await connectToDatabase();
 
+    const callerAdmin = await AdminUser.findOne({ username: caller.username });
+    if (!callerAdmin) {
+      return json({ success: false, message: 'Caller admin account not found.' }, 404);
+    }
+
+    const callerCb = (callerAdmin?.createdBy || '').toLowerCase();
+    const callerUn = (callerAdmin?.username || '').toLowerCase();
+    const isMainAdmin = Boolean(callerAdmin) && (callerCb === 'seed' || callerCb === 'system' || callerUn === 'admin');
+    if (!isMainAdmin) {
+      return json({ success: false, message: 'Only the main seed admin can delete admin accounts.' }, 403);
+    }
+
     const target = await AdminUser.findById(id);
     if (!target) return json({ success: false, message: 'Admin not found.' }, 404);
 
     if (target.username === caller.username) {
       return json({ success: false, message: 'You cannot delete your own account.' }, 403);
+    }
+
+    const targetCb = (target?.createdBy || '').toLowerCase();
+    const targetUn = (target?.username || '').toLowerCase();
+    if (targetCb === 'seed' || targetCb === 'system' || targetUn === 'admin') {
+      return json({ success: false, message: 'The main seed admin account cannot be deleted.' }, 403);
     }
 
     await AdminUser.findByIdAndDelete(id);

@@ -23,6 +23,8 @@ export async function GET(request) {
 
     for (const subscriber of subscribers) {
       try {
+        if (!subscriber || subscriber.isActive === false) continue;
+
         // Check if Twilio Sandbox session has expired (72h WhatsApp inactivity)
         const refDate = subscriber.lastCommandDate || subscriber.createdAt;
         const now = new Date();
@@ -112,6 +114,8 @@ export async function POST(request) {
     let sentCount = 0;
     for (const subscriber of subscribers) {
       try {
+        if (!subscriber || subscriber.isActive === false) continue;
+
         const weatherBundle = await getFullWeatherData(subscriber.city);
         const alerts = evaluateWeatherAlerts(subscriber, weatherBundle, alertType);
 

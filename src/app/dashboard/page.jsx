@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, Mail, Send, CheckCircle, AlertCircle, LayoutDashboard, MessageSquare, Radio, Eye, Pencil, Trash2, X, ShieldCheck, LogOut, Plus, UserCog, UserCheck, UserX, User } from 'lucide-react';
+import { Users, Mail, Send, CheckCircle, AlertCircle, LayoutDashboard, MessageSquare, Radio, Eye, Pencil, Trash2, X, ShieldCheck, LogOut, Plus, UserCog, UserCheck, UserX, User, Key } from 'lucide-react';
 import Link from 'next/link';
 import LocationSelector from '@/components/LocationSelector';
 
@@ -1436,8 +1436,9 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
       {/* Target selector */}
       <div style={cardStyle} className="rounded-xl p-4 sm:p-5 space-y-4 relative z-20">
         <p className="text-xs text-sky-200/90 uppercase tracking-widest font-semibold">Recipients</p>
-        <div className="flex flex-row gap-2 sm:gap-3">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
           {[
+            ['all', 'All Users', Users],
             ['all_active', 'All Active', UserCheck],
             ['all_deactive', 'All Deactive', UserX],
             ['specific', 'Specific Subscriber', User]
@@ -1447,12 +1448,12 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
               onClick={() => { setTarget(val); setResult(null); }}
               title={label}
               aria-label={label}
-              className={`flex-1 py-2.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all border flex items-center justify-center gap-2 ${target === val
+              className={`py-2.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all border flex items-center justify-center gap-2 ${target === val
                   ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40'
                   : 'border-white/15 text-white/70 hover:text-white hover:bg-white/10'
                 }`}
             >
-              <IconComp size={16} className="shrink-0" />
+              <IconComp size={18} className="shrink-0" />
               <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
@@ -1575,11 +1576,13 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
       <button
         onClick={handleSend}
         disabled={sending || !message.trim() || (target === 'specific' && !selectedSub)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium py-3 transition-all shadow-lg shadow-indigo-900/30"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm md:text-base font-semibold py-3 transition-all shadow-lg shadow-indigo-900/30"
       >
         <Send size={16} />
         {sending
           ? 'Sending…'
+          : target === 'all'
+          ? 'Send to All Subscribers (Active & Deactive)'
           : target === 'all_deactive'
           ? 'Send to All Deactive Subscribers'
           : target === 'specific'
@@ -1591,7 +1594,7 @@ function BroadcastTab({ token, initialSelectedSub, initialSearch, initialMessage
 }
 
 /* ─── Admins Tab ─────────────────────────────────────────────── */
-function AdminsTab({ token, currentUser }) {
+function AdminsTab({ token, currentUser, isMainAdmin }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -1600,6 +1603,12 @@ function AdminsTab({ token, currentUser }) {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Main Admin resetting another admin's password
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetPasswordVal, setResetPasswordVal] = useState('');
+  const [resetErr, setResetErr] = useState('');
+  const [resetSaving, setResetSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1644,6 +1653,30 @@ function AdminsTab({ token, currentUser }) {
     finally { setDeleting(false); }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetPasswordVal || resetPasswordVal.length < 6) {
+      setResetErr('Password must be at least 6 characters long.');
+      return;
+    }
+    setResetSaving(true); setResetErr('');
+    try {
+      const res = await axios.post(
+        '/api/admin/change-password',
+        { targetAdminId: resetTarget._id, newPassword: resetPasswordVal },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setResetTarget(null);
+        setResetPasswordVal('');
+        load();
+      }
+    } catch (e) {
+      setResetErr(e.response?.data?.message || 'Error updating password.');
+    } finally {
+      setResetSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -1652,15 +1685,17 @@ function AdminsTab({ token, currentUser }) {
           <h2 className="text-base font-semibold text-white">Admin Accounts</h2>
           <p className="text-xs text-sky-100/80 mt-0.5">Manage who has access to this dashboard.</p>
         </div>
-        <button
-          onClick={() => { setForm({ username: '', email: '', password: '' }); setFormErr(''); setModal(true); }}
-          className="flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium p-2.5 sm:px-4 sm:py-2 transition-colors shrink-0 shadow-lg shadow-indigo-900/30"
-          title="Add Admin"
-          aria-label="Add Admin"
-        >
-          <Plus size={16} />
-          <span className="hidden sm:inline">Add Admin</span>
-        </button>
+        {isMainAdmin && (
+          <button
+            onClick={() => { setForm({ username: '', email: '', password: '' }); setFormErr(''); setModal(true); }}
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium p-2.5 sm:px-4 sm:py-2 transition-colors shrink-0 shadow-lg shadow-indigo-900/30"
+            title="Add Admin"
+            aria-label="Add Admin"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Add Admin</span>
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -1704,15 +1739,26 @@ function AdminsTab({ token, currentUser }) {
             </div>
             <span className="text-xs text-white/85 truncate pr-2 hidden sm:block">{a.email || '—'}</span>
             <span className="text-xs text-white/80 truncate pr-2 hidden md:block">{a.createdBy}</span>
-            <div className="flex items-center justify-end">
-              {a.username !== currentUser ? (
-                <button
-                  onClick={() => setDeleteTarget(a)}
-                  title="Remove Admin Account"
-                  className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+            <div className="flex items-center justify-end gap-1">
+              {isMainAdmin && a.username !== currentUser ? (
+                <>
+                  <button
+                    onClick={() => { setResetTarget(a); setResetPasswordVal(''); setResetErr(''); }}
+                    title={`Reset password for ${a.username}`}
+                    className="p-1.5 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-colors"
+                  >
+                    <Key size={16} />
+                  </button>
+                  {a.createdBy !== 'system' && a.username !== 'admin' && (
+                    <button
+                      onClick={() => setDeleteTarget(a)}
+                      title="Remove Admin Account"
+                      className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </>
               ) : (
                 <span className="text-xs text-white/40 pr-2">—</span>
               )}
@@ -1720,6 +1766,35 @@ function AdminsTab({ token, currentUser }) {
           </div>
         ))}
       </div>
+
+      {/* Main Admin Resetting Another Admin's Password Modal */}
+      {resetTarget && (
+        <Modal title={`Reset Password — ${resetTarget.username}`} onClose={() => setResetTarget(null)}>
+          <p className="text-xs text-white/80 -mt-1">As Main Seed Admin, set a new password for <strong className="text-white font-medium">{resetTarget.username}</strong>.</p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-sky-200 font-medium">New Password</label>
+              <input
+                type="password"
+                value={resetPasswordVal}
+                onChange={e => { setResetPasswordVal(e.target.value); setResetErr(''); }}
+                placeholder="Min. 6 characters"
+                className={inputCls}
+                style={inputStyle}
+                autoFocus
+              />
+            </div>
+            {resetErr && <p className="text-xs text-red-400 font-medium">{resetErr}</p>}
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setResetTarget(null)} className="flex-1 rounded-lg border border-white/20 text-sm text-white/80 hover:text-white py-2.5 transition-colors">Cancel</button>
+              <button onClick={handleResetPassword} disabled={resetSaving || !resetPasswordVal}
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 transition-colors shadow-md shadow-indigo-900/30">
+                {resetSaving ? 'Updating…' : 'Set New Password'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Create Admin Modal */}
       {modal && (
@@ -1813,11 +1888,87 @@ const TABS = [
   { key: 'admins', label: 'Admin Accounts', Icon: ShieldCheck },
 ];
 
-function DashboardShell({ onLock, token, username }) {
+function DashboardShell({ onLock, token, username, isMainAdmin }) {
   const [tab, setTab] = useState('overview');
   const [replySub, setReplySub] = useState(null);
   const [replySearch, setReplySearch] = useState('');
   const [replyMsg, setReplyMsg] = useState('');
+
+  // Profile Dropdown state
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+
+  // Change Password Modal state
+  const [changePassModal, setChangePassModal] = useState(false);
+  const [cpCurrent, setCpCurrent] = useState('');
+  const [cpNew, setCpNew] = useState('');
+  const [cpConfirm, setCpConfirm] = useState('');
+  const [cpErr, setCpErr] = useState('');
+  const [cpSuccess, setCpSuccess] = useState('');
+  const [cpSaving, setCpSaving] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setCpErr('');
+      setCpSuccess('');
+      setCpCurrent('');
+      setCpNew('');
+      setCpConfirm('');
+      setChangePassModal(true);
+    };
+    window.addEventListener('open-change-password-modal', handleOpenModal);
+    return () => window.removeEventListener('open-change-password-modal', handleOpenModal);
+  }, []);
+
+  const handleChangePassword = async () => {
+    if (!cpCurrent.trim() || !cpNew.trim()) {
+      setCpErr('Please fill in both current and new password.');
+      return;
+    }
+    if (cpNew.length < 6) {
+      setCpErr('New password must be at least 6 characters long.');
+      return;
+    }
+    if (cpNew !== cpConfirm) {
+      setCpErr('New passwords do not match.');
+      return;
+    }
+
+    setCpSaving(true);
+    setCpErr('');
+    setCpSuccess('');
+    try {
+      const res = await axios.post(
+        '/api/admin/change-password',
+        { currentPassword: cpCurrent, newPassword: cpNew },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setCpSuccess(res.data.message || 'Password updated successfully!');
+        setTimeout(() => {
+          setChangePassModal(false);
+          setCpCurrent('');
+          setCpNew('');
+          setCpConfirm('');
+          setCpSuccess('');
+        }, 1500);
+      }
+    } catch (e) {
+      setCpErr(e.response?.data?.message || 'Failed to change password.');
+    } finally {
+      setCpSaving(false);
+    }
+  };
 
   const handleReplyToMessage = async (msg) => {
     try {
@@ -1854,18 +2005,61 @@ function DashboardShell({ onLock, token, username }) {
             <p className="text-xs text-indigo-300 font-semibold uppercase tracking-widest mb-1">Admin</p>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">Dashboard</h1>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
-              <UserCog size={13} className="text-sky-300" />
-              <span className="text-xs text-white font-medium">{username}</span>
-            </div>
+          <div className="flex items-center gap-2 mt-1 relative" ref={profileDropdownRef}>
+            {/* Profile Dropdown Toggle Button */}
             <button
-              onClick={onLock}
-              className="flex items-center gap-1.5 text-xs text-white/90 hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/30 bg-white/10 hover:bg-white/20"
+              onClick={() => setProfileDropdownOpen(p => !p)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/35 bg-white/10 hover:bg-white/20 transition-colors"
+              title="Profile & Settings"
+              aria-label="Profile & Settings"
             >
-              <LogOut size={13} />
-              <span className="hidden sm:inline">Sign out</span>
+              <UserCog size={15} className="text-sky-300" />
+              <span className="text-xs text-white font-medium hidden sm:inline">{username}</span>
             </button>
+
+            {/* Profile Dropdown Menu */}
+            {profileDropdownOpen && (
+              <div
+                style={{ background: 'rgba(15, 23, 42, 0.96)', backdropFilter: 'blur(25px)', border: '1px solid rgba(255,255,255,0.2)' }}
+                className="absolute right-0 top-full mt-2 w-56 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 py-1 text-xs"
+              >
+                <div className="px-3.5 py-2 border-b border-white/10">
+                  <p className="text-white font-semibold text-sm truncate">{username}</p>
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 ${
+                    isMainAdmin ? 'text-indigo-300 bg-indigo-500/20 border border-indigo-500/30' : 'text-sky-300 bg-sky-500/20 border border-sky-500/30'
+                  }`}>
+                    {isMainAdmin ? 'Main Seed Admin' : 'Admin Account'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    setCpErr('');
+                    setCpSuccess('');
+                    setCpCurrent('');
+                    setCpNew('');
+                    setCpConfirm('');
+                    setChangePassModal(true);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-left text-white/90 hover:text-white hover:bg-indigo-600/30 flex items-center gap-2.5 transition-colors"
+                >
+                  <Key size={14} className="text-indigo-300 shrink-0" />
+                  <span>Change Password</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    onLock();
+                  }}
+                  className="w-full px-3.5 py-2.5 text-left text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 flex items-center gap-2.5 transition-colors border-t border-white/10"
+                >
+                  <LogOut size={14} className="text-rose-400 shrink-0" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1894,9 +2088,71 @@ function DashboardShell({ onLock, token, username }) {
           {tab === 'subscribers' && <SubscribersTab token={token} />}
           {tab === 'messages' && <MessagesTab token={token} />}
           {tab === 'broadcast' && <BroadcastTab token={token} />}
-          {tab === 'admins' && <AdminsTab token={token} currentUser={username} />}
+          {tab === 'admins' && <AdminsTab token={token} currentUser={username} isMainAdmin={isMainAdmin} />}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {changePassModal && (
+        <Modal title="Change My Password" onClose={() => setChangePassModal(false)}>
+          <p className="text-xs text-white/80 -mt-1">Update your admin account login password for <strong className="text-white font-medium">{username}</strong>.</p>
+          <div className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="text-xs text-sky-200 font-medium">Current Password</label>
+              <input
+                type="password"
+                value={cpCurrent}
+                onChange={e => { setCpCurrent(e.target.value); setCpErr(''); }}
+                placeholder="Enter current password"
+                className={inputCls}
+                style={inputStyle}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-sky-200 font-medium">New Password</label>
+              <input
+                type="password"
+                value={cpNew}
+                onChange={e => { setCpNew(e.target.value); setCpErr(''); }}
+                placeholder="Min. 6 characters"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-sky-200 font-medium">Confirm New Password</label>
+              <input
+                type="password"
+                value={cpConfirm}
+                onChange={e => { setCpConfirm(e.target.value); setCpErr(''); }}
+                placeholder="Re-enter new password"
+                className={inputCls}
+                style={inputStyle}
+              />
+            </div>
+
+            {cpErr && <p className="text-xs text-red-400 font-medium">{cpErr}</p>}
+            {cpSuccess && <p className="text-xs text-emerald-300 font-medium">{cpSuccess}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setChangePassModal(false)}
+                className="flex-1 rounded-lg border border-white/20 text-sm text-white/80 hover:text-white py-2.5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={cpSaving || !cpCurrent || !cpNew || !cpConfirm}
+                className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold py-2.5 transition-colors shadow-md shadow-indigo-900/30"
+              >
+                {cpSaving ? 'Updating…' : 'Update Password'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1906,6 +2162,7 @@ export default function DashboardPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
+  const [isMainAdmin, setIsMainAdmin] = useState(false);
   const [checking, setChecking] = useState(true);
 
   // On mount: try to restore session from stored JWT
@@ -1920,6 +2177,7 @@ export default function DashboardPage() {
         if (res.data?.success) {
           setToken(storedToken);
           setUsername(storedUsername || res.data.username);
+          setIsMainAdmin(Boolean(res.data.isMainAdmin));
           setUnlocked(true);
         }
       })
@@ -1930,9 +2188,10 @@ export default function DashboardPage() {
       .finally(() => setChecking(false));
   }, []);
 
-  const handleUnlock = (jwt, uname) => {
+  const handleUnlock = (jwt, uname, mainFlag = false) => {
     setToken(jwt);
     setUsername(uname);
+    setIsMainAdmin(Boolean(mainFlag));
     setUnlocked(true);
   };
 
@@ -1941,6 +2200,7 @@ export default function DashboardPage() {
     sessionStorage.removeItem('admin_username');
     setToken('');
     setUsername('');
+    setIsMainAdmin(false);
     setUnlocked(false);
   };
 
@@ -1953,5 +2213,5 @@ export default function DashboardPage() {
   }
 
   if (!unlocked) return <LoginGate onUnlock={handleUnlock} />;
-  return <DashboardShell onLock={lock} token={token} username={username} />;
+  return <DashboardShell onLock={lock} token={token} username={username} isMainAdmin={isMainAdmin} />;
 }

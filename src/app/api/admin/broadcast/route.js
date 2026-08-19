@@ -35,7 +35,9 @@ export async function POST(request) {
 
     let subscribers = [];
 
-    if (target === 'all' || target === 'all_active') {
+    if (target === 'all') {
+      subscribers = await Subscriber.find({});
+    } else if (target === 'all_active') {
       subscribers = await Subscriber.find({ isActive: { $ne: false } });
     } else if (target === 'all_deactive') {
       subscribers = await Subscriber.find({ isActive: false });
